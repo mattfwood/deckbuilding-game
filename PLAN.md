@@ -92,10 +92,13 @@ Starting deck: 7 Penny + 3 Farm. Ties go to the player with fewer turns.
 
 ### Phase 2: Single-player UI
 
-- [ ] Board: market, hand, play area, deck/discard counts, game log
-- [ ] Prompts for pending decisions (pick cards, yes/no)
-- [ ] Simple bot opponent (fixed buy-priority, "big money" style)
-- [ ] Local state via `useReducer` around the engine; save to localStorage
+- [x] Board: market, hand, play area, deck/discard counts, game log
+- [x] Prompts for pending decisions (pick cards, pick from supply, reveal yes/no)
+- [x] Simple bot opponent (`src/engine/bots/bigMoney.ts`), 1-3 bots per game
+- [x] Local state via `useReducer` around the engine; save to localStorage
+- [x] Clicking a supply card auto-plays treasures if needed
+- [ ] Mobile layout polish (supply is very tall on phones)
+- [ ] Card art, animations
 
 ### Phase 3: Server-authoritative play + Prisma
 
