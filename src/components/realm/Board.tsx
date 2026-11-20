@@ -16,7 +16,7 @@ import { GameLog } from "./GameLog";
 import { GameOver } from "./GameOver";
 import { Opponents } from "./Opponents";
 import { PlayerArea } from "./PlayerArea";
-import { Supply } from "./Supply";
+import { Supply, type SupplyDisplay } from "./Supply";
 
 interface BoardProps {
   state: GameState;
@@ -44,13 +44,23 @@ export function Board({ state, humanSeat, error, act, onDismissError, onNewGame 
       .filter((c) => hasType(c, "treasure"))
       .reduce((sum, c) => sum + (getCard(c).coins ?? 0), 0);
 
-  function supplyState(id: CardId) {
+  /**
+   * How a supply card looks right now:
+   * - available: you can buy it with the coins you've already played
+   * - reachable: you can buy it once you play the rest of your treasures
+   * - muted: out of reach this turn (only once you're buying, so the action phase stays calm)
+   */
+  function supplyDisplay(id: CardId): SupplyDisplay {
     if (myDecision?.kind === "selectFromSupply") {
-      return myDecision.options.includes(id) ? "option" : "idle";
+      const isOption = myDecision.options.includes(id);
+      return { state: isOption ? "option" : "idle", muted: !isOption };
     }
-    const canBuy =
-      myTurn && view.buys > 0 && view.supply[id] > 0 && getCard(id).cost <= potentialCoins;
-    return canBuy ? "available" : "idle";
+    if (!myTurn) return { state: "idle", muted: false };
+    const cost = getCard(id).cost;
+    const buyable = view.buys > 0 && view.supply[id] > 0;
+    if (buyable && cost <= view.coins) return { state: "available", muted: false };
+    if (buyable && cost <= potentialCoins) return { state: "reachable", muted: false };
+    return { state: "idle", muted: view.phase === "buy" };
   }
 
   function onPickSupply(id: CardId) {
@@ -97,7 +107,12 @@ export function Board({ state, humanSeat, error, act, onDismissError, onNewGame 
 
         <Opponents view={view} actor={actor} />
 
-        <Supply view={view} cardState={supplyState} onPick={onPickSupply} />
+        <Supply
+          view={view}
+          display={supplyDisplay}
+          onPick={onPickSupply}
+          legend={myTurn ? { coins: view.coins, potentialCoins, buys: view.buys } : null}
+        />
 
         <section aria-label="In play" className="flex min-h-16 flex-col gap-2">
           <h2 className="text-sm font-semibold text-stone-600 dark:text-stone-400">

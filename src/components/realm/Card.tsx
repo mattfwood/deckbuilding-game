@@ -22,15 +22,20 @@ export interface CardProps {
   count?: number;
   size?: "sm" | "md";
   /** Visual state: playable/buyable, chosen in a selection, or a decision option. */
-  state?: "idle" | "available" | "selected" | "option";
+  state?: "idle" | "available" | "reachable" | "selected" | "option";
   dimmed?: boolean;
+  /** Also drain the color, for cards that are out of reach. */
+  muted?: boolean;
   onClick?: () => void;
   title?: string;
 }
 
 const STATE_RING = {
   idle: "",
-  available: "ring-2 ring-amber-500 hover:-translate-y-0.5 cursor-pointer",
+  available:
+    "ring-[3px] ring-amber-500 shadow-md shadow-amber-500/30 hover:-translate-y-0.5 cursor-pointer",
+  reachable:
+    "outline-2 outline-dashed outline-offset-2 outline-amber-500/80 hover:-translate-y-0.5 cursor-pointer",
   selected: "ring-4 ring-rose-500 -translate-y-2",
   option: "ring-2 ring-sky-500 hover:-translate-y-0.5 cursor-pointer",
 };
@@ -41,6 +46,7 @@ export function Card({
   size = "md",
   state = "idle",
   dimmed,
+  muted,
   onClick,
   title,
 }: CardProps) {
@@ -52,6 +58,7 @@ export function Card({
     toneFor(id),
     STATE_RING[state],
     dimmed ? "opacity-40" : "",
+    muted ? "grayscale" : "",
   ].join(" ");
 
   const body = (
