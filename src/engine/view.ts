@@ -16,6 +16,10 @@ export interface PublicPlayerView {
 export interface PlayerView extends Omit<GameState, "seed" | "rng" | "players" | "queue"> {
   you: number;
   hand: CardId[];
+  /** Your draw pile's contents, sorted so the draw order stays secret. */
+  deck: CardId[];
+  /** Your discard pile, oldest first. */
+  discard: CardId[];
   players: PublicPlayerView[];
 }
 
@@ -23,6 +27,8 @@ export function getPlayerView(state: GameState, player: number): PlayerView {
   return structuredClone({
     you: player,
     hand: state.players[player].hand,
+    deck: [...state.players[player].deck].sort(),
+    discard: state.players[player].discard,
     players: state.players.map((p) => ({
       id: p.id,
       name: p.name,

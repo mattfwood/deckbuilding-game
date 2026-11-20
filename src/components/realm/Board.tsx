@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   getActor,
   getCard,
@@ -10,6 +11,7 @@ import {
   type GameState,
 } from "@/engine";
 import { Card } from "./Card";
+import { CardViewer, type CardViewerTab } from "./CardViewer";
 import { GameLog } from "./GameLog";
 import { GameOver } from "./GameOver";
 import { Opponents } from "./Opponents";
@@ -26,6 +28,8 @@ interface BoardProps {
 }
 
 export function Board({ state, humanSeat, error, act, onDismissError, onNewGame }: BoardProps) {
+  // Lives here, not in PlayerArea, because PlayerArea remounts on every new log entry.
+  const [viewerTab, setViewerTab] = useState<CardViewerTab | null>(null);
   const view = getPlayerView(state, humanSeat);
   const you = view.you;
   const actor = getActor(state);
@@ -126,12 +130,22 @@ export function Board({ state, humanSeat, error, act, onDismissError, onNewGame 
           myTurn={myTurn}
           myDecision={myDecision}
           waitingOn={waitingOn}
+          onViewCards={setViewerTab}
         />
       </main>
 
       <aside className="lg:w-72 lg:shrink-0">
         <GameLog log={view.log} />
       </aside>
+
+      {viewerTab && (
+        <CardViewer
+          view={view}
+          tab={viewerTab}
+          onTab={setViewerTab}
+          onClose={() => setViewerTab(null)}
+        />
+      )}
 
       {view.result && <GameOver view={view} onNewGame={onNewGame} />}
     </div>

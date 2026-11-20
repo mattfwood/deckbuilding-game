@@ -27,4 +27,13 @@ describe("getPlayerView", () => {
     view.hand.push("ingot");
     expect(s.players[0].hand).toHaveLength(5);
   });
+
+  it("shows your own deck contents without revealing their order, plus your discard", () => {
+    const s = newGame();
+    s.players[0].deck = ["ingot", "penny", "farm", "crown"];
+    s.players[0].discard = ["town", "penny"];
+    const view = getPlayerView(s, 0);
+    expect(view.deck).toEqual(["crown", "farm", "ingot", "penny"]);
+    expect(view.discard).toEqual(["town", "penny"]);
+  });
 });

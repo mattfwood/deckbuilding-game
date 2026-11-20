@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { getCard, hasType, type Action, type Decision, type PlayerView } from "@/engine";
 import { Card } from "./Card";
+import type { CardViewerTab } from "./CardViewer";
 
 interface PlayerAreaProps {
   view: PlayerView;
@@ -11,6 +12,7 @@ interface PlayerAreaProps {
   myDecision: Decision | null;
   /** Who we're waiting on, when it isn't us. */
   waitingOn: string | null;
+  onViewCards: (tab: CardViewerTab) => void;
 }
 
 const button =
@@ -22,7 +24,14 @@ const secondary = `${button} border border-stone-300 hover:bg-stone-100 dark:bor
  * Your hand, status, and controls. The parent remounts this (via `key`) when a
  * new decision starts, which resets the card selection.
  */
-export function PlayerArea({ view, act, myTurn, myDecision, waitingOn }: PlayerAreaProps) {
+export function PlayerArea({
+  view,
+  act,
+  myTurn,
+  myDecision,
+  waitingOn,
+  onViewCards,
+}: PlayerAreaProps) {
   const [selected, setSelected] = useState<number[]>([]);
   const you = view.you;
   const me = view.players[you];
@@ -80,8 +89,22 @@ export function PlayerArea({ view, act, myTurn, myDecision, waitingOn }: PlayerA
           active={isCurrent}
           hint={myTurn && handTreasure > 0 ? `+${handTreasure} in hand` : undefined}
         />
-        <span className="text-stone-500 dark:text-stone-400">
-          Deck {me.deckCount} · Discard {me.discardCount}
+        <span className="flex gap-1">
+          {(
+            [
+              ["deck", `Deck ${me.deckCount}`],
+              ["discard", `Discard ${me.discardCount}`],
+              ["all", "All cards"],
+            ] as const
+          ).map(([tab, label]) => (
+            <button
+              key={tab}
+              className="rounded-md border border-stone-300 px-2 py-0.5 text-xs text-stone-600 hover:bg-stone-100 dark:border-stone-600 dark:text-stone-300 dark:hover:bg-stone-800"
+              onClick={() => onViewCards(tab)}
+            >
+              {label}
+            </button>
+          ))}
         </span>
       </div>
 
