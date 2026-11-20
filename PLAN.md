@@ -1,11 +1,11 @@
-# Deck-Builder Game: Project Plan
+# Realm: Project Plan
 
-An **original** web-based deck-building card game: players start with a small
-deck, buy cards from a shared market, and play through action → buy → cleanup
-turns, scoring victory points at the end. Name, theme, card names, card text
-and art are all our own.
+**Realm** is an original web-based deck-building card game: players start with
+a small deck, buy cards from a shared market, and play through action → buy →
+cleanup turns, scoring victory points at the end. Name, theme, card names, card
+text and art are all our own.
 
-> Game name / theme: **TBD**
+> Card names are placeholders: rename them in `src/engine/cards/`.
 
 Stack: Next.js (App Router) + React + TypeScript, Vitest, Prisma + Postgres
 (phase 3+).
@@ -55,15 +55,40 @@ prisma/
 
 ### Phase 1: Engine
 
-- [ ] State model: supply piles, trash, per-player deck / hand / discard / in-play
-- [ ] Seeded RNG + shuffle
-- [ ] Turn loop: action phase → buy phase → cleanup (draw 5); actions / buys / coins
-- [ ] Starter cards: basic treasures, basic victory cards, a curse-style card
-- [ ] ~10 original action cards covering draw, +actions, +buys, +coins,
+- [x] State model: supply piles, trash, per-player deck / hand / discard / in-play
+- [x] Seeded RNG + shuffle
+- [x] Turn loop: action phase → buy phase → cleanup (draw 5); actions / buys / coins
+- [x] Starter cards: basic treasures, basic victory cards, a curse-style card
+- [x] 10 original action cards covering draw, +actions, +buys, +coins,
       trashing, gaining, one attack, one reaction
-- [ ] Pending-decision mechanism
-- [ ] End conditions (top victory pile empty, or 3 piles empty) + scoring
-- [ ] Thorough unit tests
+- [x] Pending-decision mechanism (can target non-current players)
+- [x] End conditions (Capital pile empty, or 3 piles empty) + scoring
+- [x] Unit tests, including simulated full games that check card conservation
+- [x] `getPlayerView` (hides seed, RNG, other hands, deck order)
+
+#### Placeholder card set
+
+| Card          | Cost | Type            | Effect                                              |
+| ------------- | ---- | --------------- | --------------------------------------------------- |
+| Penny         | 0    | Treasure        | 1 Coin                                              |
+| Crown         | 3    | Treasure        | 2 Coins                                             |
+| Ingot         | 6    | Treasure        | 3 Coins                                             |
+| Farm          | 2    | Victory         | 1 VP                                                |
+| Town          | 5    | Victory         | 3 VP                                                |
+| Capital       | 8    | Victory         | 6 VP (empty pile ends the game)                     |
+| Blight        | 0    | Curse           | -1 VP                                               |
+| Campfire      | 2    | Action          | +2 Actions, +1 Coin                                 |
+| Shrine        | 2    | Action          | +1 Coin, trash up to 2 cards                        |
+| Palisade      | 3    | Action–Reaction | +1 Card, +1 Action; reveal to block an attack       |
+| Scribe        | 4    | Action          | +3 Cards, discard a card                            |
+| Builder       | 4    | Action          | +1 Action, gain a card costing up to 4              |
+| Raider        | 4    | Action–Attack   | +1 Card, +1 Coin; each other player discards a card |
+| Tax Collector | 5    | Action          | +1 Buy, +3 Coins                                    |
+| Caravan       | 5    | Action          | +2 Cards, +1 Action, +1 Buy                         |
+| Alchemist     | 5    | Action          | Trash a card, gain one costing up to 3 more         |
+| Warlock       | 5    | Action–Attack   | +1 Card, +1 Action; each other player gains Blight  |
+
+Starting deck: 7 Penny + 3 Farm. Ties go to the player with fewer turns.
 
 ### Phase 2: Single-player UI
 
