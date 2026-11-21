@@ -32,6 +32,19 @@ host: `localhost:3000` for one player and `pat.localhost:3000` for the other
 (subdomains of localhost get their own cookies and are allowed by the dev
 server). Create a game with **Friends**, then open the invite link on the other host.
 
+## Deploying (Vercel + Neon)
+
+1. Push this repo to GitHub and import it into [Vercel](https://vercel.com/new).
+2. In the Vercel project, open **Storage** and add **Neon** from the Marketplace, connected to
+   this project. It sets `DATABASE_URL` (pooled, used by the app) and `DATABASE_URL_UNPOOLED`
+   (direct, used by migrations) for you.
+3. Deploy. Vercel runs `npm run vercel-build`, which applies migrations
+   (`prisma migrate deploy`) and then builds. Every push to `main` redeploys.
+4. Check `https://<your-app>/api/health` returns `{"ok":true}`.
+
+Optional: add a Vercel Firewall rate-limit rule. The app's own limits
+(`src/server/rateLimit.ts`) are per server instance, so they only slow down abuse.
+
 ## Scripts
 
 | Script               | What it does                                                           |

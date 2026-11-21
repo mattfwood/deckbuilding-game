@@ -167,10 +167,15 @@ Smallest working version first, in this order. Each step is playable on its own.
 
 **4b. Deploy**
 
-- [ ] Vercel for the app + hosted Postgres (Neon or Supabase); migrations on deploy
+- [x] Pooled `DATABASE_URL` for the app, direct URL for migrations (`prisma.config.ts`
+      reads `DIRECT_URL` / `DATABASE_URL_UNPOOLED`)
+- [x] `vercel-build` runs `prisma migrate deploy` before `next build`
+- [x] `/api/health`, styled error and not-found pages
+- [x] Basic in-memory rate limits on creating, joining and moving
 - [ ] Original card names and text before anything is public: the kingdom cards
       currently use Dominion's names as placeholders
-- [ ] Production checks: secure cookies, error pages, basic rate limiting on actions
+- [ ] Push to GitHub; Vercel project + Neon via the Vercel Marketplace; first deploy
+- [ ] Optional: Vercel Firewall rate-limit rule
 
 **4c. Accounts** (once people play across devices)
 

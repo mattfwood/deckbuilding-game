@@ -1,5 +1,6 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { EngineError } from "@/engine";
 import {
@@ -9,17 +10,36 @@ import {
   type GameSnapshot,
 } from "@/server/games";
 import { ensureGuestId, gameService, getGuestId } from "@/server/guest";
+import { LIMITS, createRateLimiter, type Limit } from "@/server/rateLimit";
+
+const limiter = createRateLimiter();
+const TOO_MANY = "You're going too fast. Wait a minute and try again.";
+
+/** The caller's IP. On Vercel, x-forwarded-for is set by the platform, not the client. */
+async function clientIp(): Promise<string> {
+  const h = await headers();
+  return h.get("x-forwarded-for")?.split(",")[0].trim() || h.get("x-real-ip") || "local";
+}
+
+async function allowed(kind: keyof typeof LIMITS): Promise<boolean> {
+  const limit: Limit = LIMITS[kind];
+  return limiter.allow(`${kind}:${await clientIp()}`, limit);
+}
 
 export type GameResult =
   | { ok: true; snapshot: GameSnapshot }
-  /** `snapshot` is the latest state when there is one, so the client can resync. */
-  | { ok: false; error: string; snapshot: GameSnapshot | null };
+  /**
+   * `snapshot` is the latest state when there is one, so the client can resync.
+   * `notFound` means the game is gone (or never had you seated), not a passing error.
+   */
+  | { ok: false; error: string; snapshot: GameSnapshot | null; notFound?: boolean };
 
 /** Start a game against bots right away. */
 export async function createGameAction(input: {
   name: string;
   botCount: number;
 }): Promise<{ error: string }> {
+  if (!(await allowed("create"))) return { error: TOO_MANY };
   const guestId = await ensureGuestId();
   const gameId = await orError(() =>
     gameService().createGame({
@@ -34,6 +54,7 @@ export async function createGameAction(input: {
 
 /** Open a lobby to invite friends into. */
 export async function createLobbyAction(input: { name: string }): Promise<{ error: string }> {
+  if (!(await allowed("create"))) return { error: TOO_MANY };
   const guestId = await ensureGuestId();
   const gameId = await orError(() =>
     gameService().createLobby({ guestId, name: String(input?.name ?? "") }),
@@ -46,6 +67,7 @@ export async function joinGameAction(input: {
   code: string;
   name: string;
 }): Promise<{ error: string }> {
+  if (!(await allowed("join"))) return { error: TOO_MANY };
   const guestId = await ensureGuestId();
   const gameId = await orError(() =>
     gameService().joinLobby(String(input?.code ?? ""), guestId, String(input?.name ?? "")),
@@ -111,13 +133,16 @@ async function run(
 ): Promise<GameResult> {
   const guestId = await getGuestId();
   if (typeof gameId !== "string" || !guestId) {
-    return { ok: false, error: "Game not found.", snapshot: null };
+    return { ok: false, error: "Game not found.", snapshot: null, notFound: true };
   }
+  if (!(await allowed("move"))) return { ok: false, error: TOO_MANY, snapshot: null };
   const svc = gameService();
   try {
     return { ok: true, snapshot: await fn(svc, guestId) };
   } catch (e) {
-    if (e instanceof GameNotFoundError) return { ok: false, error: e.message, snapshot: null };
+    if (e instanceof GameNotFoundError) {
+      return { ok: false, error: e.message, snapshot: null, notFound: true };
+    }
     if (e instanceof EngineError || e instanceof ConflictError) {
       const snapshot = await svc.getSnapshot(gameId, guestId).catch(() => null);
       return { ok: false, error: e.message, snapshot };

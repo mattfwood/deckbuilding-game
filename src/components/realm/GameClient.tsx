@@ -39,7 +39,7 @@ export function GameClient({ initial }: { initial: GameSnapshot }) {
       try {
         const result = await call();
         if (result.snapshot) accept(result.snapshot);
-        else if (!result.ok) setGone(true);
+        else if (!result.ok && result.notFound) setGone(true);
         setError(result.ok ? null : result.error);
       } catch {
         setError("Couldn't reach the server. Dismiss to try again.");
