@@ -32,10 +32,10 @@ describe("game end", () => {
 
   it("ends when any three piles are empty", () => {
     let s = newGame();
-    s = { ...s, supply: { ...s.supply, scribe: 0, shrine: 0 } };
+    s = { ...s, supply: { ...s.supply, harbinger: 0, chapel: 0 } };
     s = endTurn(s);
     expect(s.phase).toBe("action");
-    s = { ...s, supply: { ...s.supply, caravan: 0 } };
+    s = { ...s, supply: { ...s.supply, workshop: 0 } };
     s = endTurn(s);
     expect(s.phase).toBe("gameOver");
   });

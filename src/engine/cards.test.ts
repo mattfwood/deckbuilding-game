@@ -12,24 +12,24 @@ function play(s: GameState, cardId: CardId, player = 0) {
 const deck = [CROWN, INGOT, TOWN, PENNY, PENNY];
 
 describe("kingdom cards", () => {
-  it("Campfire: +2 Actions, +1 Coin", () => {
-    const s = play(withCards(newGame(), 0, { hand: ["campfire"] }), "campfire");
+  it("Cellar: +2 Actions, +1 Coin", () => {
+    const s = play(withCards(newGame(), 0, { hand: ["cellar"] }), "cellar");
     expect(s).toMatchObject({ actions: 2, coins: 1 });
   });
 
-  it("Caravan: +2 Cards, +1 Action, +1 Buy", () => {
-    const s = play(withCards(newGame(), 0, { hand: ["caravan"], deck }), "caravan");
+  it("Workshop: +2 Cards, +1 Action, +1 Buy", () => {
+    const s = play(withCards(newGame(), 0, { hand: ["workshop"], deck }), "workshop");
     expect(s.players[0].hand).toEqual([CROWN, INGOT]);
     expect(s).toMatchObject({ actions: 1, buys: 2 });
   });
 
-  it("Tax Collector: +1 Buy, +3 Coins", () => {
-    const s = play(withCards(newGame(), 0, { hand: ["tax-collector"] }), "tax-collector");
+  it("Village: +1 Buy, +3 Coins", () => {
+    const s = play(withCards(newGame(), 0, { hand: ["village"] }), "village");
     expect(s).toMatchObject({ buys: 2, coins: 3 });
   });
 
-  it("Scribe: draws 3, then must discard exactly 1", () => {
-    let s = play(withCards(newGame(), 0, { hand: ["scribe", FARM], deck }), "scribe");
+  it("Harbinger: draws 3, then must discard exactly 1", () => {
+    let s = play(withCards(newGame(), 0, { hand: ["harbinger", FARM], deck }), "harbinger");
     expect(s.players[0].hand).toEqual([FARM, CROWN, INGOT, TOWN]);
     expect(s.pendingDecision).toMatchObject({ kind: "selectFromHand", min: 1, max: 1 });
 
@@ -48,8 +48,8 @@ describe("kingdom cards", () => {
     expect(s.players[0].discard).toEqual([FARM]);
   });
 
-  it("Shrine: +1 Coin, trash 0-2 cards", () => {
-    let s = play(withCards(newGame(), 0, { hand: ["shrine", FARM, FARM, PENNY] }), "shrine");
+  it("Chapel: +1 Coin, trash 0-2 cards", () => {
+    let s = play(withCards(newGame(), 0, { hand: ["chapel", FARM, FARM, PENNY] }), "chapel");
     expect(s.coins).toBe(1);
     expect(s.pendingDecision).toMatchObject({ min: 0, max: 2, purpose: "trash" });
     s = run(s, {
@@ -61,18 +61,18 @@ describe("kingdom cards", () => {
     expect(s.players[0].hand).toEqual([PENNY]);
   });
 
-  it("Shrine with an empty hand asks nothing", () => {
-    const s = play(withCards(newGame(), 0, { hand: ["shrine"] }), "shrine");
+  it("Chapel with an empty hand asks nothing", () => {
+    const s = play(withCards(newGame(), 0, { hand: ["chapel"] }), "chapel");
     expect(s.pendingDecision).toBeNull();
   });
 
-  it("Builder: +1 Action, gain a card costing up to 4", () => {
-    let s = play(withCards(newGame(), 0, { hand: ["builder"] }), "builder");
+  it("Merchant: +1 Action, gain a card costing up to 4", () => {
+    let s = play(withCards(newGame(), 0, { hand: ["merchant"] }), "merchant");
     expect(s.actions).toBe(1);
     const d = s.pendingDecision;
     expect(d?.kind).toBe("selectFromSupply");
     if (d?.kind !== "selectFromSupply") return;
-    expect(d.options).toContain("scribe");
+    expect(d.options).toContain("harbinger");
     expect(d.options).not.toContain(INGOT);
 
     expect(() =>
@@ -86,14 +86,14 @@ describe("kingdom cards", () => {
     s = run(s, {
       type: "resolveDecision",
       player: 0,
-      response: { kind: "selectFromSupply", cardId: "scribe" },
+      response: { kind: "selectFromSupply", cardId: "harbinger" },
     });
-    expect(s.players[0].discard).toEqual(["scribe"]);
-    expect(s.supply.scribe).toBe(9);
+    expect(s.players[0].discard).toEqual(["harbinger"]);
+    expect(s.supply.harbinger).toBe(9);
   });
 
-  it("Alchemist: trash a card, gain one costing up to 3 more", () => {
-    let s = play(withCards(newGame(), 0, { hand: ["alchemist", CROWN] }), "alchemist");
+  it("Militia: trash a card, gain one costing up to 3 more", () => {
+    let s = play(withCards(newGame(), 0, { hand: ["militia", CROWN] }), "militia");
     s = run(s, {
       type: "resolveDecision",
       player: 0,
@@ -110,10 +110,10 @@ describe("kingdom cards", () => {
     expect(s.players[0].discard).toEqual([INGOT]);
   });
 
-  it("Raider: each other player discards a card, in turn order", () => {
+  it("Vassal: each other player discards a card, in turn order", () => {
     let s = newGame(3);
-    s = withCards(s, 0, { hand: ["raider"], deck });
-    s = play(s, "raider");
+    s = withCards(s, 0, { hand: ["vassal"], deck });
+    s = play(s, "vassal");
     expect(s).toMatchObject({ coins: 1 });
     expect(s.players[0].hand).toEqual([CROWN]);
     expect(s.pendingDecision).toMatchObject({ player: 1, purpose: "discard" });
@@ -147,26 +147,26 @@ describe("kingdom cards", () => {
     expect(s.players[2].hand).toHaveLength(4);
   });
 
-  it("Warlock: each other player gains a Blight", () => {
-    let s = withCards(newGame(3), 0, { hand: ["warlock"], deck });
-    s = play(s, "warlock");
+  it("Moneylender: each other player gains a Blight", () => {
+    let s = withCards(newGame(3), 0, { hand: ["moneylender"], deck });
+    s = play(s, "moneylender");
     expect(s.actions).toBe(1);
     expect(s.players[1].discard).toEqual([BLIGHT]);
     expect(s.players[2].discard).toEqual([BLIGHT]);
     expect(s.supply[BLIGHT]).toBe(18);
   });
 
-  it("Palisade: +1 Card, +1 Action", () => {
-    const s = play(withCards(newGame(), 0, { hand: ["palisade"], deck }), "palisade");
+  it("Moat: +1 Card, +1 Action", () => {
+    const s = play(withCards(newGame(), 0, { hand: ["moat"], deck }), "moat");
     expect(s.players[0].hand).toEqual([CROWN]);
     expect(s.actions).toBe(1);
   });
 
-  it("Palisade: revealing it blocks an attack; declining does not", () => {
-    let s = withCards(newGame(3), 0, { hand: ["warlock"], deck });
-    s = withCards(s, 1, { hand: ["palisade", PENNY] });
-    s = withCards(s, 2, { hand: ["palisade", PENNY] });
-    s = play(s, "warlock");
+  it("Moat: revealing it blocks an attack; declining does not", () => {
+    let s = withCards(newGame(3), 0, { hand: ["moneylender"], deck });
+    s = withCards(s, 1, { hand: ["moat", PENNY] });
+    s = withCards(s, 2, { hand: ["moat", PENNY] });
+    s = play(s, "moneylender");
     expect(s.pendingDecision).toMatchObject({ kind: "revealReaction", player: 1 });
 
     s = run(
@@ -177,19 +177,19 @@ describe("kingdom cards", () => {
     expect(s.players[1].discard).toEqual([]);
     expect(s.players[2].discard).toEqual([BLIGHT]);
     // Revealing keeps the card in hand.
-    expect(s.players[1].hand).toContain("palisade");
+    expect(s.players[1].hand).toContain("moat");
   });
 
   it("attacks do nothing in a solo game", () => {
-    const after = play(withCards(newGame(1), 0, { hand: ["warlock"], deck }), "warlock");
+    const after = play(withCards(newGame(1), 0, { hand: ["moneylender"], deck }), "moneylender");
     expect(after.pendingDecision).toBeNull();
     expect(after.supply[BLIGHT]).toBe(10);
   });
 
   it("an empty gain pile is skipped, not an error", () => {
-    let s = withCards(newGame(), 0, { hand: ["warlock"], deck });
+    let s = withCards(newGame(), 0, { hand: ["moneylender"], deck });
     s = { ...s, supply: { ...s.supply, [BLIGHT]: 0 } };
-    const after = play(s, "warlock");
+    const after = play(s, "moneylender");
     expect(after.players[1].discard).toEqual([]);
   });
 });

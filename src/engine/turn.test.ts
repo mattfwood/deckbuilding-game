@@ -57,26 +57,26 @@ describe("turn loop", () => {
   });
 
   it("enforces turn order and phases", () => {
-    const s = withCards(newGame(), 0, { hand: ["scribe", PENNY, PENNY, PENNY, PENNY] });
+    const s = withCards(newGame(), 0, { hand: ["harbinger", PENNY, PENNY, PENNY, PENNY] });
     expect(() => applyAction(s, { type: "endPhase", player: 1 })).toThrow(/not your turn/);
     expect(() => applyAction(s, { type: "playAction", player: 0, cardId: PENNY })).toThrow(
       EngineError,
     );
-    expect(() => applyAction(s, { type: "playAction", player: 0, cardId: "caravan" })).toThrow(
+    expect(() => applyAction(s, { type: "playAction", player: 0, cardId: "workshop" })).toThrow(
       /not in hand/,
     );
     const inBuy = run(s, { type: "playTreasure", player: 0, cardId: PENNY });
-    expect(() => applyAction(inBuy, { type: "playAction", player: 0, cardId: "scribe" })).toThrow(
-      /action phase/,
-    );
+    expect(() =>
+      applyAction(inBuy, { type: "playAction", player: 0, cardId: "harbinger" }),
+    ).toThrow(/action phase/);
   });
 
   it("requires an action to play an action card", () => {
-    const s = withCards(newGame(), 0, { hand: ["tax-collector", "tax-collector"] });
-    const after = run(s, { type: "playAction", player: 0, cardId: "tax-collector" });
+    const s = withCards(newGame(), 0, { hand: ["village", "village"] });
+    const after = run(s, { type: "playAction", player: 0, cardId: "village" });
     expect(after.actions).toBe(0);
-    expect(() =>
-      applyAction(after, { type: "playAction", player: 0, cardId: "tax-collector" }),
-    ).toThrow(/no actions/);
+    expect(() => applyAction(after, { type: "playAction", player: 0, cardId: "village" })).toThrow(
+      /no actions/,
+    );
   });
 });

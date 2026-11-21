@@ -1,0 +1,61 @@
+// Games are stored as an event log: the seed and setup in `Game`, then every
+// accepted move in `GameAction`. The engine rebuilds state by replaying them.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum GameStatus {
+  active
+  finished
+}
+
+enum PlayerKind {
+  human
+  bot
+}
+
+model Game {
+  id        String       @id @default(cuid())
+  seed      String
+  status    GameStatus   @default(active)
+  /// Setup passed to the engine: { kingdom: CardId[] }. Player names come from GamePlayer.
+  config    Json
+  players   GamePlayer[]
+  actions   GameAction[]
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+}
+
+model GamePlayer {
+  id      String     @id @default(cuid())
+  gameId  String
+  seat    Int
+  name    String
+  kind    PlayerKind
+  /// Anonymous guest id from a cookie, until Phase 4 adds real accounts. Null for bots.
+  guestId String?
+  game    Game       @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@unique([gameId, seat])
+  @@index([guestId])
+}
+
+model GameAction {
+  id        String   @id @default(cuid())
+  gameId    String
+  /// 0-based position in the log. Unique per game, so two writers racing for
+  /// the same slot can't both win (optimistic concurrency).
+  seq       Int
+  seat      Int
+  payload   Json
+  createdAt DateTime @default(now())
+  game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@unique([gameId, seq])
+}

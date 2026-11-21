@@ -45,15 +45,15 @@ describe("createGame", () => {
     expect(() => createGame({ seed: "s", players: five })).toThrow(EngineError);
     const one = [{ id: "a", name: "A" }];
     expect(() => createGame({ seed: "s", players: one, kingdom: ["nope"] })).toThrow(EngineError);
-    expect(() => createGame({ seed: "s", players: one, kingdom: ["scribe", "scribe"] })).toThrow(
-      EngineError,
-    );
+    expect(() =>
+      createGame({ seed: "s", players: one, kingdom: ["harbinger", "harbinger"] }),
+    ).toThrow(EngineError);
   });
 
   it("supports a custom kingdom", () => {
-    const s = createGame({ seed: "s", players: [{ id: "a", name: "A" }], kingdom: ["scribe"] });
-    expect(s.kingdom).toEqual(["scribe"]);
-    expect(s.supply.scribe).toBe(10);
-    expect(s.supply.warlock).toBeUndefined();
+    const s = createGame({ seed: "s", players: [{ id: "a", name: "A" }], kingdom: ["harbinger"] });
+    expect(s.kingdom).toEqual(["harbinger"]);
+    expect(s.supply.harbinger).toBe(10);
+    expect(s.supply.moneylender).toBeUndefined();
   });
 });

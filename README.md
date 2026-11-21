@@ -1,36 +1,44 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Realm
 
-## Getting Started
+A web-based deck-building card game. See [PLAN.md](PLAN.md) for the roadmap.
 
-First, run the development server:
+## Setup
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+1. Install Postgres. On macOS, [Postgres.app](https://postgresapp.com) is the easiest: install it,
+   open it, and click **Initialize**.
+2. Create the app and test databases:
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+   ```bash
+   createdb realm && createdb realm_test
+   ```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Copy `.env.example` to `.env` and put your macOS username in both URLs.
+4. Install, then create the tables (`npm install` also generates the Prisma client):
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+   ```bash
+   npm install && npm run db:migrate
+   ```
 
-## Learn More
+5. Run it at [http://localhost:3000](http://localhost:3000):
 
-To learn more about Next.js, take a look at the following resources:
+   ```bash
+   npm run dev
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Scripts
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Script               | What it does                                                           |
+| -------------------- | ---------------------------------------------------------------------- |
+| `npm test`           | Engine and server tests. DB tests run when `TEST_DATABASE_URL` is set. |
+| `npm run typecheck`  | TypeScript                                                             |
+| `npm run lint`       | ESLint                                                                 |
+| `npm run db:migrate` | Apply schema changes (`prisma/schema.prisma`) and make a migration     |
+| `npm run db:studio`  | Browse the database                                                    |
 
-## Deploy on Vercel
+## Layout
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `src/engine/`: the rules, pure TypeScript with no I/O. Deterministic from a seed.
+- `src/server/`: game service. Stores each game as a seed plus a log of moves in Postgres, and
+  rebuilds state by replaying it through the engine.
+- `src/app/`: Next.js routes. `actions.ts` holds the Server Actions the UI calls.
+- `src/components/realm/`: the game UI.

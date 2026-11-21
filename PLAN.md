@@ -7,8 +7,7 @@ text and art are all our own.
 
 > Card names are placeholders: rename them in `src/engine/cards/`.
 
-Stack: Next.js (App Router) + React + TypeScript, Vitest, Prisma + Postgres
-(phase 3+).
+Stack: Next.js (App Router) + React + TypeScript, Vitest, Prisma + Postgres.
 
 ## Core idea: a pure rules engine first
 
@@ -102,10 +101,22 @@ Starting deck: 7 Penny + 3 Farm. Ties go to the player with fewer turns.
 
 ### Phase 3: Server-authoritative play + Prisma
 
-- [ ] Postgres + Prisma, games stored as an event log (schema below)
-- [ ] Client sends action → server loads state (replay or cached snapshot) →
-      validates → saves action → returns the player's view
-- [ ] `@@unique([gameId, seq])` gives optimistic concurrency
+- [x] Postgres (Postgres.app locally) + Prisma 7, games stored as an event log
+      (`prisma/schema.prisma`): `Game` (seed, kingdom), `GamePlayer` (seat, human/bot),
+      `GameAction` (seq, seat, payload)
+- [x] Client sends action → server loads state (replay, plus an in-memory cache of
+      replayed states) → validates → saves action → returns the player's view
+- [x] `@@unique([gameId, seq])` gives optimistic concurrency; a lost race returns
+      the fresh view instead of a corrupt log
+- [x] Untrusted input is rebuilt field by field (`src/server/parseAction.ts`)
+      before the engine sees it
+- [x] Bots move on the server, one action per request, so their turns still animate
+- [x] Anonymous guest cookie owns your seats (replaced by real accounts in phase 4)
+- [x] Routes: `/` (new game + your games), `/game/[id]`; localStorage saving removed
+- [x] Service tests against a real Postgres test database (`TEST_DATABASE_URL`)
+- [ ] Snapshot table if replays ever get slow (not needed yet: a full game replays in ms)
+
+Original schema sketch, for reference (the real one is in `prisma/schema.prisma`):
 
 ```prisma
 model Game {

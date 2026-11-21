@@ -7,3 +7,4 @@ export { computeResult, isGameOver, victoryPoints } from "./scoring";
 export { getPlayerView, type PlayerView, type PublicPlayerView } from "./view";
 export { getActor } from "./actor";
 export { chooseBotAction } from "./bots/bigMoney";
+export { BOT_NAMES } from "./bots/names";

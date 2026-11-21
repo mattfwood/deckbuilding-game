@@ -32,11 +32,11 @@ describe("bigMoney bot", () => {
   it("buys kingdom cards, so attacks and decisions get exercised", () => {
     const end = playOut(newGame(3, "bot-f"));
     const messages = end.log.map((e) => e.message).join("\n");
-    expect(messages).toMatch(/plays (Warlock|Raider|Scribe|Caravan)/);
+    expect(messages).toMatch(/plays (Moneylender|Vassal|Harbinger|Workshop)/);
   });
 
-  it("trashes junk with Shrine and keeps good cards", () => {
-    let s = withCards(newGame(), 0, { hand: ["shrine", BLIGHT, FARM, "ingot", "crown"] });
+  it("trashes junk with Chapel and keeps good cards", () => {
+    let s = withCards(newGame(), 0, { hand: ["chapel", BLIGHT, FARM, "ingot", "crown"] });
     s = applyAction(s, chooseBotAction(s, 0));
     expect(s.pendingDecision).toMatchObject({ purpose: "trash" });
     s = applyAction(s, chooseBotAction(s, 0));
@@ -44,7 +44,7 @@ describe("bigMoney bot", () => {
   });
 
   it("discards its worst card", () => {
-    let s = withCards(newGame(), 0, { hand: ["scribe", "ingot"], deck: [PENNY, FARM, "crown"] });
+    let s = withCards(newGame(), 0, { hand: ["harbinger", "ingot"], deck: [PENNY, FARM, "crown"] });
     s = applyAction(s, chooseBotAction(s, 0));
     s = applyAction(s, chooseBotAction(s, 0));
     expect(s.players[0].discard).toEqual([FARM]);

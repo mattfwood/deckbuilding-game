@@ -1,14 +1,18 @@
 "use client";
 
-import { useState } from "react";
-import { BOT_NAMES } from "./useRealmGame";
+import { useState, useTransition } from "react";
+import { BOT_NAMES } from "@/engine";
+import { createGameAction } from "@/app/actions";
 
-export function NewGameForm({ onStart }: { onStart: (name: string, bots: number) => void }) {
+/** Creates a game on the server, which then redirects to it. */
+export function NewGameForm() {
   const [name, setName] = useState("Player");
   const [bots, setBots] = useState(1);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center gap-6 px-4 py-12">
+    <section className="flex flex-col gap-6">
       <div>
         <h1 className="text-4xl font-bold tracking-tight">Realm</h1>
         <p className="mt-2 text-stone-600 dark:text-stone-400">
@@ -20,7 +24,11 @@ export function NewGameForm({ onStart }: { onStart: (name: string, bots: number)
         className="flex flex-col gap-4"
         onSubmit={(e) => {
           e.preventDefault();
-          onStart(name, bots);
+          startTransition(async () => {
+            // Only returns on failure; on success the server redirects to the new game.
+            const result = await createGameAction({ name, botCount: bots });
+            startTransition(() => setError(result.error));
+          });
         }}
       >
         <label className="flex flex-col gap-1 text-sm font-medium">
@@ -61,11 +69,17 @@ export function NewGameForm({ onStart }: { onStart: (name: string, bots: number)
         </fieldset>
         <button
           type="submit"
-          className="rounded-md bg-stone-900 px-4 py-2.5 font-medium text-white hover:bg-stone-700 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-300"
+          disabled={pending}
+          className="rounded-md bg-stone-900 px-4 py-2.5 font-medium text-white hover:bg-stone-700 disabled:opacity-60 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-300"
         >
-          Start game
+          {pending ? "Starting…" : "Start game"}
         </button>
+        {error && (
+          <p role="alert" className="text-sm text-rose-700 dark:text-rose-300">
+            {error}
+          </p>
+        )}
       </form>
-    </main>
+    </section>
   );
 }

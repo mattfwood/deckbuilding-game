@@ -1,6 +1,7 @@
+import Link from "next/link";
 import type { PlayerView } from "@/engine";
 
-export function GameOver({ view, onNewGame }: { view: PlayerView; onNewGame: () => void }) {
+export function GameOver({ view }: { view: PlayerView }) {
   const result = view.result!;
   const youWon = result.winners.includes(view.you);
   const rows = view.players
@@ -39,12 +40,12 @@ export function GameOver({ view, onNewGame }: { view: PlayerView; onNewGame: () 
             ))}
           </tbody>
         </table>
-        <button
-          className="mt-6 w-full rounded-md bg-stone-900 px-3 py-2 text-sm font-medium text-white hover:bg-stone-700 dark:bg-stone-100 dark:text-stone-900"
-          onClick={onNewGame}
+        <Link
+          href="/"
+          className="mt-6 block w-full rounded-md bg-stone-900 px-3 py-2 text-center text-sm font-medium text-white hover:bg-stone-700 dark:bg-stone-100 dark:text-stone-900"
         >
           New game
-        </button>
+        </Link>
       </div>
     </div>
   );

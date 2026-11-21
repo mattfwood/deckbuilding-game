@@ -7,7 +7,8 @@ import type { CardViewerTab } from "./CardViewer";
 
 interface PlayerAreaProps {
   view: PlayerView;
-  act: (action: Action) => void;
+  /** Send one or more actions; several go to the server as one all-or-nothing batch. */
+  act: (...actions: Action[]) => void;
   myTurn: boolean;
   myDecision: Decision | null;
   /** Who we're waiting on, when it isn't us. */
@@ -73,8 +74,10 @@ export function PlayerArea({
   }
 
   function endTurn() {
-    if (view.phase === "action") act({ type: "endPhase", player: you });
-    act({ type: "endPhase", player: you });
+    const end: Action = { type: "endPhase", player: you };
+    // From the action phase, ending the turn means ending both phases.
+    if (view.phase === "action") act(end, end);
+    else act(end);
   }
 
   return (
@@ -188,7 +191,7 @@ function DecisionBar({
   waitingOn,
 }: {
   view: PlayerView;
-  act: (action: Action) => void;
+  act: (...actions: Action[]) => void;
   decision: Decision | null;
   selected: number[];
   waitingOn: string | null;

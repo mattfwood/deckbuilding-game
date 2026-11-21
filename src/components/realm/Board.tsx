@@ -1,15 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import {
-  getActor,
-  getCard,
-  getPlayerView,
-  hasType,
-  type Action,
-  type CardId,
-  type GameState,
-} from "@/engine";
+import Link from "next/link";
+import { getCard, hasType, type Action, type CardId, type PlayerView } from "@/engine";
 import { Card } from "./Card";
 import { CardViewer, type CardViewerTab } from "./CardViewer";
 import { GameLog } from "./GameLog";
@@ -19,20 +12,19 @@ import { PlayerArea } from "./PlayerArea";
 import { Supply, type SupplyDisplay } from "./Supply";
 
 interface BoardProps {
-  state: GameState;
-  humanSeat: number;
+  /** What the server lets this player see. */
+  view: PlayerView;
   error: string | null;
-  act: (action: Action) => void;
+  /** Send one or more actions; several go to the server as one all-or-nothing batch. */
+  act: (...actions: Action[]) => void;
   onDismissError: () => void;
-  onNewGame: () => void;
 }
 
-export function Board({ state, humanSeat, error, act, onDismissError, onNewGame }: BoardProps) {
+export function Board({ view, error, act, onDismissError }: BoardProps) {
   // Lives here, not in PlayerArea, because PlayerArea remounts on every new log entry.
   const [viewerTab, setViewerTab] = useState<CardViewerTab | null>(null);
-  const view = getPlayerView(state, humanSeat);
   const you = view.you;
-  const actor = getActor(state);
+  const actor = view.actor;
   const pending = view.pendingDecision;
   const myDecision = pending?.player === you ? pending : null;
   const myTurn = view.currentPlayer === you && !pending && view.phase !== "gameOver";
@@ -73,8 +65,9 @@ export function Board({ state, humanSeat, error, act, onDismissError, onNewGame 
       return;
     }
     // Buying auto-plays your treasures if you need their coins.
-    if (getCard(id).cost > view.coins) act({ type: "playAllTreasures", player: you });
-    act({ type: "buy", player: you, cardId: id });
+    const buy: Action = { type: "buy", player: you, cardId: id };
+    if (getCard(id).cost > view.coins) act({ type: "playAllTreasures", player: you }, buy);
+    else act(buy);
   }
 
   const waitingOn = actor !== null && actor !== you ? view.players[actor].name : null;
@@ -93,16 +86,12 @@ export function Board({ state, humanSeat, error, act, onDismissError, onNewGame 
             <h1 className="text-2xl font-bold tracking-tight">Realm</h1>
             <p className="text-sm text-stone-600 dark:text-stone-400">{turnLabel}</p>
           </div>
-          <button
+          <Link
+            href="/"
             className="rounded-md border border-stone-300 px-3 py-1.5 text-sm hover:bg-stone-100 dark:border-stone-600 dark:hover:bg-stone-800"
-            onClick={() => {
-              if (view.phase === "gameOver" || confirm("Abandon this game and start a new one?")) {
-                onNewGame();
-              }
-            }}
           >
-            New game
-          </button>
+            All games
+          </Link>
         </header>
 
         <Opponents view={view} actor={actor} />
@@ -162,7 +151,7 @@ export function Board({ state, humanSeat, error, act, onDismissError, onNewGame 
         />
       )}
 
-      {view.result && <GameOver view={view} onNewGame={onNewGame} />}
+      {view.result && <GameOver view={view} />}
     </div>
   );
 }

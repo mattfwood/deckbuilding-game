@@ -1,3 +1,4 @@
+import { getActor } from "./actor";
 import type { CardId, GameState } from "./types";
 
 export interface PublicPlayerView {
@@ -21,6 +22,8 @@ export interface PlayerView extends Omit<GameState, "seed" | "rng" | "players" |
   /** Your discard pile, oldest first. */
   discard: CardId[];
   players: PublicPlayerView[];
+  /** The seat that must act next (see getActor), or null once the game is over. */
+  actor: number | null;
 }
 
 export function getPlayerView(state: GameState, player: number): PlayerView {
@@ -51,5 +54,6 @@ export function getPlayerView(state: GameState, player: number): PlayerView {
     pendingDecision: state.pendingDecision,
     log: state.log,
     result: state.result,
+    actor: getActor(state),
   });
 }

@@ -7,17 +7,15 @@ import { BLIGHT, CAPITAL, CROWN, FARM, INGOT, PENNY, TOWN, getCard, hasType } fr
 import { allCards } from "../scoring";
 import type { Action, CardId, Decision, GameState } from "../types";
 
-/** Kingdom cards the bot likes to buy, best first. */
-const KINGDOM_PREFERENCE: CardId[] = [
-  "warlock",
-  "caravan",
-  "tax-collector",
-  "scribe",
-  "raider",
-  "alchemist",
-  "builder",
-  "palisade",
-];
+/**
+ * Kingdom cards the bot likes to buy, best first. Derived from the card data
+ * rather than hard-coded ids, so it survives cards being renamed or swapped:
+ * attacks first, then pricier cards.
+ */
+function kingdomPreference(kingdom: CardId[]): CardId[] {
+  const score = (id: CardId) => (hasType(id, "attack") ? 100 : 0) + getCard(id).cost;
+  return [...kingdom].sort((a, b) => score(b) - score(a) || a.localeCompare(b));
+}
 const MAX_KINGDOM_ACTIONS = 3;
 
 /** Cards the bot is happiest to lose, worst first. */
@@ -64,7 +62,7 @@ function pickBuy(s: GameState, player: number, coins: number): CardId | undefine
   wants.push(CAPITAL, INGOT);
   if (capitalsLeft <= 6) wants.push(TOWN);
   if (kingdomActions < MAX_KINGDOM_ACTIONS) {
-    wants.push(...KINGDOM_PREFERENCE.filter((id) => s.kingdom.includes(id)));
+    wants.push(...kingdomPreference(s.kingdom));
   }
   wants.push(CROWN);
   if (capitalsLeft <= 2) wants.push(FARM);
@@ -79,7 +77,9 @@ function decide(s: GameState, d: Decision) {
     case "selectFromSupply": {
       const byCost = [...d.options].sort((a, b) => getCard(b).cost - getCard(a).cost);
       const pick =
-        [CAPITAL, INGOT, ...KINGDOM_PREFERENCE, CROWN].find((id) => d.options.includes(id)) ??
+        [CAPITAL, INGOT, ...kingdomPreference(s.kingdom), CROWN].find((id) =>
+          d.options.includes(id),
+        ) ??
         byCost.find((id) => id !== BLIGHT) ??
         byCost[0];
       return { kind: "selectFromSupply" as const, cardId: pick };
