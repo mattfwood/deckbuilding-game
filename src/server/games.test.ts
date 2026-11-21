@@ -8,13 +8,28 @@ import {
   clearStateCache,
   createGameService,
   type GameSnapshot,
+  type PlaySnapshot,
 } from "./games";
+
+/** Narrow a snapshot to a started game, failing the test if it's still a lobby. */
+function play(snap: GameSnapshot): PlaySnapshot {
+  if (snap.status === "lobby") throw new Error("Expected a started game, got a lobby.");
+  return snap;
+}
 
 const url = process.env.TEST_DATABASE_URL;
 
 describe.skipIf(!url)("game service (Postgres)", () => {
   const db = createPrismaClient(url!);
-  const svc = createGameService(db);
+  const raw = createGameService(db);
+  // Same service, with results narrowed to started games for these tests.
+  const svc = {
+    ...raw,
+    act: async (...a: Parameters<typeof raw.act>) => play(await raw.act(...a)),
+    stepBot: async (...a: Parameters<typeof raw.stepBot>) => play(await raw.stepBot(...a)),
+    getSnapshot: async (...a: Parameters<typeof raw.getSnapshot>) =>
+      play(await raw.getSnapshot(...a)),
+  };
   const ME = "guest-me";
 
   beforeEach(async () => {
@@ -29,7 +44,7 @@ describe.skipIf(!url)("game service (Postgres)", () => {
   }
 
   /** Let bots move until it's my turn again (or the game ends). */
-  async function botsUntilMe(snap: GameSnapshot): Promise<GameSnapshot> {
+  async function botsUntilMe(snap: PlaySnapshot): Promise<PlaySnapshot> {
     while (snap.view.actor !== null && snap.seats[snap.view.actor].kind === "bot") {
       snap = await svc.stepBot(snap.gameId, ME);
     }
@@ -200,5 +215,154 @@ describe.skipIf(!url)("game service (Postgres)", () => {
     }
     const id = await svc.createGame({ guestId: ME, name: "   ", botCount: 1 });
     expect((await svc.getSnapshot(id, ME)).seats[0].name).toBe("Player");
+  });
+  describe("lobbies", () => {
+    const FRIEND = "guest-friend";
+
+    async function lobby() {
+      const id = await raw.createLobby({ guestId: ME, name: "Me" });
+      const snap = await raw.getSnapshot(id, ME);
+      if (snap.status !== "lobby") throw new Error("expected a lobby");
+      return snap;
+    }
+
+    async function seatsOf(gameId: string) {
+      return (await raw.getSnapshot(gameId, ME)).seats.map((s) => `${s.name}:${s.kind}`);
+    }
+
+    it("lets a friend join by invite code, then the host starts", async () => {
+      const host = await lobby();
+      expect(host).toMatchObject({ you: 0, isHost: true, seats: [{ name: "Me", kind: "human" }] });
+
+      const invite = await raw.getInvite(host.inviteCode, FRIEND);
+      expect(invite).toMatchObject({ gameId: host.gameId, hostName: "Me", joined: false });
+
+      expect(await raw.joinLobby(host.inviteCode, FRIEND, "Pat")).toBe(host.gameId);
+      expect(await raw.joinLobby(host.inviteCode, FRIEND, "Pat")).toBe(host.gameId); // idempotent
+      expect(await seatsOf(host.gameId)).toEqual(["Me:human", "Pat:human"]);
+
+      const friend = await raw.getSnapshot(host.gameId, FRIEND);
+      expect(friend).toMatchObject({ status: "lobby", you: 1, isHost: false });
+
+      await expect(raw.startGame(host.gameId, FRIEND)).rejects.toThrow("Only the host");
+      const started = play(await raw.startGame(host.gameId, ME));
+      expect(started.view.players.map((p) => p.name)).toEqual(["Me", "Pat"]);
+
+      // Each player sees their own seat and hand, and moves only on their turn.
+      const pat = await svc.getSnapshot(host.gameId, FRIEND);
+      expect(pat.view.you).toBe(1);
+      await expect(svc.act(host.gameId, FRIEND, { type: "endPhase", player: 1 })).rejects.toThrow(
+        EngineError,
+      );
+      await svc.act(host.gameId, ME, endTurn);
+      const patTurn = await svc.act(host.gameId, FRIEND, { type: "endPhase", player: 1 });
+      expect(patTurn.view.phase).toBe("buy");
+
+      await expect(raw.joinLobby(host.inviteCode, "latecomer", "Late")).rejects.toThrow(
+        "already started",
+      );
+    });
+
+    it("rejects bad invite codes and keeps lobbies private to their seats", async () => {
+      const host = await lobby();
+      await expect(raw.getInvite("nope", FRIEND)).rejects.toThrow(GameNotFoundError);
+      await expect(raw.joinLobby("nope", FRIEND, "Pat")).rejects.toThrow(GameNotFoundError);
+      await expect(raw.getSnapshot(host.gameId, FRIEND)).rejects.toThrow(GameNotFoundError);
+      await expect(raw.poll(host.gameId, FRIEND, 0)).rejects.toThrow(GameNotFoundError);
+    });
+
+    it("renames clashing names and caps the table at four seats", async () => {
+      const host = await lobby();
+      await raw.joinLobby(host.inviteCode, "a", "Me");
+      await raw.joinLobby(host.inviteCode, "b", "  Me  ");
+      await raw.joinLobby(host.inviteCode, "c", "Cy");
+      expect(await seatsOf(host.gameId)).toEqual([
+        "Me:human",
+        "Me 2:human",
+        "Me 3:human",
+        "Cy:human",
+      ]);
+      await expect(raw.joinLobby(host.inviteCode, "d", "Dee")).rejects.toThrow("full");
+      await expect(raw.addBot(host.gameId, ME)).rejects.toThrow("full");
+    });
+
+    it("adds and removes seats, shifting later seats down", async () => {
+      const host = await lobby();
+      await raw.joinLobby(host.inviteCode, FRIEND, "Pat");
+      await raw.addBot(host.gameId, ME);
+      await raw.joinLobby(host.inviteCode, "guest-sam", "Sam");
+      expect(await seatsOf(host.gameId)).toEqual(["Me:human", "Pat:human", "Ada:bot", "Sam:human"]);
+
+      await expect(raw.addBot(host.gameId, FRIEND)).rejects.toThrow("Only the host");
+      await expect(raw.removeSeat(host.gameId, FRIEND, 3)).rejects.toThrow("Only the host");
+      await expect(raw.removeSeat(host.gameId, ME, 0)).rejects.toThrow("cancel");
+
+      await raw.removeSeat(host.gameId, ME, 2); // host removes the bot
+      await raw.removeSeat(host.gameId, FRIEND, 1); // Pat leaves
+      expect(await seatsOf(host.gameId)).toEqual(["Me:human", "Sam:human"]);
+      expect(await raw.getSnapshot(host.gameId, "guest-sam")).toMatchObject({ you: 1 });
+      await expect(raw.getSnapshot(host.gameId, FRIEND)).rejects.toThrow(GameNotFoundError);
+    });
+
+    it("needs two players to start, and nothing plays before then", async () => {
+      const host = await lobby();
+      await expect(raw.startGame(host.gameId, ME)).rejects.toThrow("Invite a friend");
+      await expect(raw.act(host.gameId, ME, endTurn)).rejects.toThrow("hasn't started");
+      expect(await raw.stepBot(host.gameId, ME)).toMatchObject({ status: "lobby" });
+
+      await raw.addBot(host.gameId, ME);
+      const started = play(await raw.startGame(host.gameId, ME));
+      expect(started.seats).toEqual([
+        { name: "Me", kind: "human" },
+        { name: "Ada", kind: "bot" },
+      ]);
+    });
+
+    it("bumps the version on every change, so polls only return news", async () => {
+      const host = await lobby();
+      expect(await raw.poll(host.gameId, ME, host.version)).toBeNull();
+
+      await raw.joinLobby(host.inviteCode, FRIEND, "Pat");
+      const afterJoin = await raw.poll(host.gameId, ME, host.version);
+      expect(afterJoin?.seats).toHaveLength(2);
+      expect(await raw.poll(host.gameId, ME, afterJoin!.version)).toBeNull();
+
+      const started = play(await raw.startGame(host.gameId, ME));
+      const moved = await svc.act(host.gameId, ME, endTurn);
+      expect(moved.version).toBe(started.version + 2);
+      const friendSees = await raw.poll(host.gameId, FRIEND, started.version);
+      expect(friendSees && play(friendSees).view.currentPlayer).toBe(1);
+    });
+
+    it("lets only the host cancel, and the lobby is gone for everyone", async () => {
+      const host = await lobby();
+      await raw.joinLobby(host.inviteCode, FRIEND, "Pat");
+      await expect(raw.cancelLobby(host.gameId, FRIEND)).rejects.toThrow(GameNotFoundError);
+      await raw.cancelLobby(host.gameId, ME);
+      await expect(raw.poll(host.gameId, FRIEND, 0)).rejects.toThrow(GameNotFoundError);
+      expect(await db.gamePlayer.count()).toBe(0);
+    });
+
+    it("never lets a join slip in after the game starts", async () => {
+      for (let round = 0; round < 5; round++) {
+        const host = await lobby();
+        await raw.addBot(host.gameId, ME);
+        const results = await Promise.allSettled([
+          raw.joinLobby(host.inviteCode, `a${round}`, "A"),
+          raw.startGame(host.gameId, ME),
+          raw.joinLobby(host.inviteCode, `b${round}`, "B"),
+        ]);
+        expect(results[1].status).toBe("fulfilled");
+        for (const r of [results[0], results[2]]) {
+          if (r.status === "rejected") expect(String(r.reason)).toMatch(/already started/);
+        }
+        // Whoever made it in is in the engine's game too.
+        clearStateCache();
+        const snap = await svc.getSnapshot(host.gameId, ME);
+        expect(snap.view.players).toHaveLength(snap.seats.length);
+        const rows = await db.gamePlayer.count({ where: { gameId: host.gameId } });
+        expect(rows).toBe(snap.seats.length);
+      }
+    });
   });
 });

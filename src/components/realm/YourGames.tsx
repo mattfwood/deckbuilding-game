@@ -20,9 +20,13 @@ export async function YourGames() {
               href={`/game/${g.id}`}
               className="flex items-center justify-between gap-3 px-3 py-2 text-sm hover:bg-stone-100 dark:hover:bg-stone-800"
             >
-              <span>vs {g.opponents.join(", ")}</span>
+              <span>{g.opponents.length ? `vs ${g.opponents.join(", ")}` : "Just you so far"}</span>
               <span className="text-xs text-stone-500">
-                {g.status === "finished" ? "Finished" : `Turn ${g.turnNumber} · Continue`}
+                {g.status === "finished"
+                  ? "Finished"
+                  : g.status === "lobby"
+                    ? "Waiting for players"
+                    : `Turn ${g.turnNumber} · Continue`}
               </span>
             </Link>
           </li>

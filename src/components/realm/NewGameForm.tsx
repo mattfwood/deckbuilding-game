@@ -2,7 +2,10 @@
 
 import { useState, useTransition } from "react";
 import { BOT_NAMES } from "@/engine";
-import { createGameAction } from "@/app/actions";
+import { createGameAction, createLobbyAction } from "@/app/actions";
+
+/** The "Friends" choice: open a lobby instead of starting against bots. */
+const FRIENDS = 0;
 
 /** Creates a game on the server, which then redirects to it. */
 export function NewGameForm() {
@@ -26,7 +29,10 @@ export function NewGameForm() {
           e.preventDefault();
           startTransition(async () => {
             // Only returns on failure; on success the server redirects to the new game.
-            const result = await createGameAction({ name, botCount: bots });
+            const result =
+              bots === FRIENDS
+                ? await createLobbyAction({ name })
+                : await createGameAction({ name, botCount: bots });
             startTransition(() => setError(result.error));
           });
         }}
@@ -43,7 +49,7 @@ export function NewGameForm() {
         <fieldset className="flex flex-col gap-1 text-sm font-medium">
           <legend className="mb-1">Opponents</legend>
           <div className="flex gap-2">
-            {[1, 2, 3].map((n) => (
+            {[1, 2, 3, FRIENDS].map((n) => (
               <label
                 key={n}
                 className={`flex-1 cursor-pointer rounded-md border px-3 py-2 text-center font-normal ${
@@ -59,12 +65,14 @@ export function NewGameForm() {
                   checked={bots === n}
                   onChange={() => setBots(n)}
                 />
-                {n} bot{n > 1 ? "s" : ""}
+                {n === FRIENDS ? "Friends" : `${n} bot${n > 1 ? "s" : ""}`}
               </label>
             ))}
           </div>
           <span className="text-xs font-normal text-stone-500">
-            vs {BOT_NAMES.slice(0, bots).join(", ")}
+            {bots === FRIENDS
+              ? "You'll get an invite link to share. Bots can fill empty seats."
+              : `vs ${BOT_NAMES.slice(0, bots).join(", ")}`}
           </span>
         </fieldset>
         <button
@@ -72,7 +80,7 @@ export function NewGameForm() {
           disabled={pending}
           className="rounded-md bg-stone-900 px-4 py-2.5 font-medium text-white hover:bg-stone-700 disabled:opacity-60 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-300"
         >
-          {pending ? "Starting…" : "Start game"}
+          {pending ? "Starting…" : bots === FRIENDS ? "Create game" : "Start game"}
         </button>
         {error && (
           <p role="alert" className="text-sm text-rose-700 dark:text-rose-300">

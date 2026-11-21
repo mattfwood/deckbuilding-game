@@ -1,9 +1,10 @@
 import "server-only";
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import {
   BOT_NAMES,
   EngineError,
   KINGDOM_CARD_IDS,
+  MAX_PLAYERS,
   applyAction,
   chooseBotAction,
   createGame as createEngineGame,
@@ -20,6 +21,7 @@ import { parseAction } from "./parseAction";
 export const MAX_BOTS = BOT_NAMES.length;
 /** Most actions one request may submit (e.g. "play all treasures, then buy"). */
 export const MAX_BATCH = 4;
+export const MAX_NAME_LENGTH = 24;
 
 /** The game doesn't exist, or the caller has no seat in it. Same error for both, so ids can't be probed. */
 export class GameNotFoundError extends Error {}
@@ -31,31 +33,67 @@ export interface SeatInfo {
   kind: "human" | "bot";
 }
 
-/** Everything a client gets about a game: its own view, never the full state. */
-export interface GameSnapshot {
+/** A game still gathering players. */
+export interface LobbySnapshot {
+  status: "lobby";
   gameId: string;
-  /** Number of actions in the log. Increases by one for every accepted action. */
+  /** Bumps on every change; pollers send it back to ask "anything new?". */
+  version: number;
+  seats: SeatInfo[];
+  you: number;
+  /** Seat 0 created the game and decides when it starts. */
+  isHost: boolean;
+  /** For the invite link. Only ever sent to players already seated. */
+  inviteCode: string;
+  maxSeats: number;
+}
+
+/** A game in progress or over: this player's view, never the full state. */
+export interface PlaySnapshot {
+  status: "active" | "finished";
+  gameId: string;
+  version: number;
+  /** Number of actions in the log. */
   seq: number;
   seats: SeatInfo[];
   view: PlayerView;
 }
 
+export type GameSnapshot = LobbySnapshot | PlaySnapshot;
+
 export interface GameSummary {
   id: string;
-  status: "active" | "finished";
+  status: "lobby" | "active" | "finished";
   opponents: string[];
   turnNumber: number;
   updatedAt: Date;
+}
+
+/** What someone holding an invite link may see before joining. */
+export interface InviteInfo {
+  gameId: string;
+  status: "lobby" | "active" | "finished";
+  hostName: string;
+  seats: SeatInfo[];
+  maxSeats: number;
+  /** Already seated in this game. */
+  joined: boolean;
 }
 
 interface GameConfig {
   kingdom: CardId[];
 }
 
+type SeatRow = SeatInfo & { guestId: string | null };
+
 interface Loaded {
   id: string;
-  seats: (SeatInfo & { guestId: string | null })[];
-  state: GameState;
+  status: "lobby" | "active" | "finished";
+  version: number;
+  inviteCode: string;
+  seats: SeatRow[];
+  /** Null while in the lobby: there is no engine state until the game starts. */
+  state: GameState | null;
   seq: number;
 }
 
@@ -78,6 +116,26 @@ export function clearStateCache() {
   stateCache.clear();
 }
 
+function newInviteCode(): string {
+  return randomBytes(12).toString("base64url");
+}
+
+/** Trim, collapse spaces, cap the length, and avoid clashing with names already seated. */
+function cleanName(raw: string, taken: string[] = []): string {
+  const base = String(raw).replace(/\s+/g, " ").trim().slice(0, MAX_NAME_LENGTH) || "Player";
+  let name = base;
+  for (let n = 2; taken.includes(name); n++) name = `${base} ${n}`;
+  return name;
+}
+
+function notFound(): never {
+  throw new GameNotFoundError("Game not found.");
+}
+
+function isUniqueViolation(e: unknown) {
+  return e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002";
+}
+
 export function createGameService(db: PrismaClient) {
   async function load(gameId: string): Promise<Loaded> {
     const cached = stateCache.get(gameId);
@@ -91,7 +149,15 @@ export function createGameService(db: PrismaClient) {
         },
       },
     });
-    if (!game) throw new GameNotFoundError("Game not found.");
+    if (!game) notFound();
+    const base = {
+      id: game.id,
+      status: game.status,
+      version: game.version,
+      inviteCode: game.inviteCode,
+      seats: game.players.map((p) => ({ name: p.name, kind: p.kind, guestId: p.guestId })),
+    };
+    if (game.status === "lobby") return { ...base, state: null, seq: 0 };
 
     let state: GameState;
     let seq: number;
@@ -113,37 +179,55 @@ export function createGameService(db: PrismaClient) {
       seq++;
     }
     remember(gameId, seq, state);
-
-    return {
-      id: game.id,
-      seats: game.players.map((p) => ({ name: p.name, kind: p.kind, guestId: p.guestId })),
-      state,
-      seq,
-    };
+    return { ...base, state, seq };
   }
 
-  function seatOf(game: Loaded, guestId: string): number {
-    const seat = game.seats.findIndex((s) => s.kind === "human" && s.guestId === guestId);
-    if (seat < 0) throw new GameNotFoundError("Game not found.");
+  function seatOf(seats: SeatRow[], guestId: string): number {
+    const seat = seats.findIndex((s) => s.kind === "human" && s.guestId === guestId);
+    if (seat < 0) notFound();
     return seat;
   }
 
   function snapshot(game: Loaded, seat: number): GameSnapshot {
+    const seats = game.seats.map(({ name, kind }) => ({ name, kind }));
+    if (game.status === "lobby" || !game.state) {
+      return {
+        status: "lobby",
+        gameId: game.id,
+        version: game.version,
+        seats,
+        you: seat,
+        isHost: seat === 0,
+        inviteCode: game.inviteCode,
+        maxSeats: MAX_PLAYERS,
+      };
+    }
     return {
+      status: game.status,
       gameId: game.id,
+      version: game.version,
       seq: game.seq,
-      seats: game.seats.map(({ name, kind }) => ({ name, kind })),
+      seats,
       view: getPlayerView(game.state, seat),
     };
   }
 
+  function started(game: Loaded): Loaded & { state: GameState } {
+    if (!game.state) throw new EngineError("The game hasn't started yet.");
+    return game as Loaded & { state: GameState };
+  }
+
   /** Validate and apply actions in memory, then append them to the log in one transaction. */
-  async function commit(game: Loaded, entries: { seat: number; action: Action }[]) {
+  async function commit(
+    game: Loaded & { state: GameState },
+    entries: { seat: number; action: Action }[],
+  ): Promise<Loaded> {
     let state = game.state;
     for (const { action } of entries) state = applyAction(state, action);
 
+    let version: number;
     try {
-      await db.$transaction([
+      const [, updated] = await db.$transaction([
         db.gameAction.createMany({
           data: entries.map(({ seat, action }, i) => ({
             gameId: game.id,
@@ -154,11 +238,15 @@ export function createGameService(db: PrismaClient) {
         }),
         db.game.update({
           where: { id: game.id },
-          data: { status: state.phase === "gameOver" ? "finished" : "active" },
+          data: {
+            status: state.phase === "gameOver" ? "finished" : "active",
+            version: { increment: entries.length },
+          },
         }),
       ]);
+      version = updated.version;
     } catch (e) {
-      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+      if (isUniqueViolation(e)) {
         throw new ConflictError("The game moved on before your action arrived.");
       }
       throw e;
@@ -166,46 +254,205 @@ export function createGameService(db: PrismaClient) {
 
     const seq = game.seq + entries.length;
     remember(game.id, seq, state);
-    return { ...game, state, seq };
+    return {
+      ...game,
+      status: state.phase === "gameOver" ? "finished" : "active",
+      state,
+      seq,
+      version,
+    };
+  }
+
+  /**
+   * Change a lobby's seats. Locks the game row, so lobby changes (and starting
+   * the game) happen one at a time: nobody can join a game that just started.
+   */
+  async function inLobby(
+    gameId: string,
+    fn: (tx: Prisma.TransactionClient, seats: SeatRow[]) => Promise<void>,
+  ): Promise<void> {
+    await db.$transaction(async (tx) => {
+      const locked = await tx.$queryRaw<{ status: string }[]>`
+        SELECT status::text FROM "Game" WHERE id = ${gameId} FOR UPDATE`;
+      if (locked.length === 0) notFound();
+      if (locked[0].status !== "lobby") throw new EngineError("This game has already started.");
+      const players = await tx.gamePlayer.findMany({
+        where: { gameId },
+        orderBy: { seat: "asc" },
+      });
+      await fn(
+        tx,
+        players.map((p) => ({ name: p.name, kind: p.kind, guestId: p.guestId })),
+      );
+      await tx.game.update({ where: { id: gameId }, data: { version: { increment: 1 } } });
+    });
+  }
+
+  function requireHost(seats: SeatRow[], guestId: string) {
+    if (seatOf(seats, guestId) !== 0) throw new EngineError("Only the host can do that.");
+  }
+
+  async function getSnapshot(gameId: string, guestId: string): Promise<GameSnapshot> {
+    const game = await load(gameId);
+    return snapshot(game, seatOf(game.seats, guestId));
+  }
+
+  async function createRow(guestId: string, name: string, status: "lobby" | "active", bots = 0) {
+    const seats: SeatRow[] = [
+      { name: cleanName(name), kind: "human", guestId },
+      ...BOT_NAMES.slice(0, bots).map((n) => ({ name: n, kind: "bot" as const, guestId: null })),
+    ];
+    const config: GameConfig = { kingdom: [...KINGDOM_CARD_IDS] };
+    const game = await db.game.create({
+      data: {
+        seed: randomUUID(),
+        status,
+        inviteCode: newInviteCode(),
+        config: config as unknown as Prisma.InputJsonValue,
+        players: { create: seats.map((s, seat) => ({ ...s, seat })) },
+      },
+    });
+    return game.id;
   }
 
   return {
+    /** A game against bots that starts right away. */
     async createGame(opts: { guestId: string; name: string; botCount: number }): Promise<string> {
       const botCount = Math.trunc(opts.botCount);
       if (!(botCount >= 1 && botCount <= MAX_BOTS)) {
         throw new EngineError(`Choose between 1 and ${MAX_BOTS} bots.`);
       }
-      const name = opts.name.trim().slice(0, 24) || "Player";
-      const seats: (SeatInfo & { guestId: string | null })[] = [
-        { name, kind: "human", guestId: opts.guestId },
-        ...BOT_NAMES.slice(0, botCount).map((n) => ({
-          name: n,
-          kind: "bot" as const,
-          guestId: null,
-        })),
-      ];
-      const config: GameConfig = { kingdom: [...KINGDOM_CARD_IDS] };
-      const seed = randomUUID();
-      // Fail before writing anything if the engine rejects this setup.
-      createEngineGame({
-        seed,
-        players: seats.map((s, i) => ({ id: String(i), name: s.name })),
-        kingdom: config.kingdom,
-      });
+      return createRow(opts.guestId, opts.name, "active", botCount);
+    },
 
-      const game = await db.game.create({
-        data: {
-          seed,
-          config: config as unknown as Prisma.InputJsonValue,
-          players: { create: seats.map((s, seat) => ({ ...s, seat })) },
-        },
+    /** A game that waits in a lobby for friends to join by invite link. */
+    async createLobby(opts: { guestId: string; name: string }): Promise<string> {
+      return createRow(opts.guestId, opts.name, "lobby");
+    },
+
+    async getInvite(code: string, guestId: string | null): Promise<InviteInfo> {
+      const game = await db.game.findUnique({
+        where: { inviteCode: code },
+        include: { players: { orderBy: { seat: "asc" } } },
       });
+      if (!game) throw new GameNotFoundError("That invite link isn't valid.");
+      return {
+        gameId: game.id,
+        status: game.status,
+        hostName: game.players[0]?.name ?? "",
+        seats: game.players.map(({ name, kind }) => ({ name, kind })),
+        maxSeats: MAX_PLAYERS,
+        joined: guestId !== null && game.players.some((p) => p.guestId === guestId),
+      };
+    },
+
+    /** Take an open seat. Joining a game you're already in just returns its id. */
+    async joinLobby(code: string, guestId: string, name: string): Promise<string> {
+      const game = await db.game.findUnique({
+        where: { inviteCode: code },
+        include: { players: { where: { guestId } } },
+      });
+      if (!game) throw new GameNotFoundError("That invite link isn't valid.");
+      if (game.players.length > 0) return game.id;
+
+      try {
+        await inLobby(game.id, async (tx, seats) => {
+          if (seats.length >= MAX_PLAYERS) throw new EngineError("This game is full.");
+          await tx.gamePlayer.create({
+            data: {
+              gameId: game.id,
+              seat: seats.length,
+              kind: "human",
+              guestId,
+              name: cleanName(
+                name,
+                seats.map((s) => s.name),
+              ),
+            },
+          });
+        });
+      } catch (e) {
+        // The same guest joining twice at once: the other request seated them.
+        if (isUniqueViolation(e)) return game.id;
+        throw e;
+      }
       return game.id;
     },
 
-    async getSnapshot(gameId: string, guestId: string): Promise<GameSnapshot> {
-      const game = await load(gameId);
-      return snapshot(game, seatOf(game, guestId));
+    async addBot(gameId: string, guestId: string): Promise<GameSnapshot> {
+      await inLobby(gameId, async (tx, seats) => {
+        requireHost(seats, guestId);
+        if (seats.length >= MAX_PLAYERS) throw new EngineError("This game is full.");
+        const name = BOT_NAMES.find((n) => !seats.some((s) => s.name === n));
+        if (!name) throw new EngineError("No more bots available.");
+        await tx.gamePlayer.create({
+          data: { gameId, seat: seats.length, kind: "bot", guestId: null, name },
+        });
+      });
+      return getSnapshot(gameId, guestId);
+    },
+
+    /**
+     * Free a seat: the host may remove anyone else, and anyone may remove
+     * themselves (except the host, who cancels instead). Later seats shift down.
+     */
+    async removeSeat(gameId: string, guestId: string, seat: number): Promise<void> {
+      await inLobby(gameId, async (tx, seats) => {
+        const mine = seatOf(seats, guestId);
+        if (!Number.isInteger(seat) || seat <= 0 || seat >= seats.length) {
+          throw new EngineError(
+            seat === 0 ? "The host can't leave; cancel the game instead." : "No such seat.",
+          );
+        }
+        if (mine !== 0 && mine !== seat) throw new EngineError("Only the host can do that.");
+        await tx.gamePlayer.delete({ where: { gameId_seat: { gameId, seat } } });
+        for (let s = seat + 1; s < seats.length; s++) {
+          await tx.gamePlayer.update({
+            where: { gameId_seat: { gameId, seat: s } },
+            data: { seat: s - 1 },
+          });
+        }
+      });
+    },
+
+    async startGame(gameId: string, guestId: string): Promise<GameSnapshot> {
+      await inLobby(gameId, async (tx, seats) => {
+        requireHost(seats, guestId);
+        if (seats.length < 2) throw new EngineError("Invite a friend or add a bot first.");
+        await tx.game.update({ where: { id: gameId }, data: { status: "active" } });
+      });
+      return getSnapshot(gameId, guestId);
+    },
+
+    /** The host abandons a lobby. Deletes it, so everyone else's poll finds it gone. */
+    async cancelLobby(gameId: string, guestId: string): Promise<void> {
+      await db.$transaction(async (tx) => {
+        const locked = await tx.$queryRaw<{ status: string }[]>`
+          SELECT status::text FROM "Game" WHERE id = ${gameId} FOR UPDATE`;
+        if (locked.length === 0) notFound();
+        const host = await tx.gamePlayer.findUnique({
+          where: { gameId_seat: { gameId, seat: 0 } },
+        });
+        if (host?.guestId !== guestId) notFound();
+        if (locked[0].status !== "lobby") throw new EngineError("This game has already started.");
+        await tx.game.delete({ where: { id: gameId } });
+      });
+    },
+
+    getSnapshot,
+
+    /**
+     * For polling: null if nothing changed since `version`, else a fresh
+     * snapshot. The unchanged case is one small query with no replay.
+     */
+    async poll(gameId: string, guestId: string, version: number): Promise<GameSnapshot | null> {
+      const game = await db.game.findUnique({
+        where: { id: gameId },
+        select: { version: true, players: { where: { guestId }, select: { seat: true } } },
+      });
+      if (!game || game.players.length === 0) notFound();
+      if (game.version === version) return null;
+      return getSnapshot(gameId, guestId);
     },
 
     /** Apply the caller's actions, in order. All or nothing. */
@@ -215,13 +462,13 @@ export function createGameService(db: PrismaClient) {
         throw new EngineError(`Send between 1 and ${MAX_BATCH} actions.`);
       }
       const game = await load(gameId);
-      const seat = seatOf(game, guestId);
+      const seat = seatOf(game.seats, guestId);
       const actions = raw.map(parseAction);
       for (const a of actions) {
         if (a.player !== seat) throw new EngineError("You can only act for your own seat.");
       }
       const next = await commit(
-        game,
+        started(game),
         actions.map((action) => ({ seat, action })),
       );
       return snapshot(next, seat);
@@ -229,15 +476,17 @@ export function createGameService(db: PrismaClient) {
 
     /**
      * Make one move for whichever bot must act. A no-op if it's not a bot's
-     * move, so a repeated or late call is harmless. Only seated players may ask.
+     * move, so a repeated or late call is harmless: any seated player's client
+     * may drive the bots, and several may try at once.
      */
     async stepBot(gameId: string, guestId: string): Promise<GameSnapshot> {
       const game = await load(gameId);
-      const seat = seatOf(game, guestId);
+      const seat = seatOf(game.seats, guestId);
+      if (!game.state) return snapshot(game, seat);
       const actor = getActor(game.state);
       if (actor === null || game.seats[actor].kind !== "bot") return snapshot(game, seat);
       try {
-        const next = await commit(game, [
+        const next = await commit(started(game), [
           { seat: actor, action: chooseBotAction(game.state, actor) },
         ]);
         return snapshot(next, seat);
@@ -262,7 +511,7 @@ export function createGameService(db: PrismaClient) {
             id: row.id,
             status: row.status,
             opponents: row.players.filter((p) => p.guestId !== guestId).map((p) => p.name),
-            turnNumber: game.state.turnNumber,
+            turnNumber: game.state?.turnNumber ?? 0,
             updatedAt: row.updatedAt,
           };
         }),

@@ -15,22 +15,42 @@ export type GameResult =
   /** `snapshot` is the latest state when there is one, so the client can resync. */
   | { ok: false; error: string; snapshot: GameSnapshot | null };
 
+/** Start a game against bots right away. */
 export async function createGameAction(input: {
   name: string;
   botCount: number;
 }): Promise<{ error: string }> {
   const guestId = await ensureGuestId();
-  let gameId: string;
-  try {
-    gameId = await gameService().createGame({
+  const gameId = await orError(() =>
+    gameService().createGame({
       guestId,
       name: String(input?.name ?? ""),
       botCount: Number(input?.botCount),
-    });
-  } catch (e) {
-    if (e instanceof EngineError) return { error: e.message };
-    throw e;
-  }
+    }),
+  );
+  if (typeof gameId !== "string") return gameId;
+  redirect(`/game/${gameId}`);
+}
+
+/** Open a lobby to invite friends into. */
+export async function createLobbyAction(input: { name: string }): Promise<{ error: string }> {
+  const guestId = await ensureGuestId();
+  const gameId = await orError(() =>
+    gameService().createLobby({ guestId, name: String(input?.name ?? "") }),
+  );
+  if (typeof gameId !== "string") return gameId;
+  redirect(`/game/${gameId}`);
+}
+
+export async function joinGameAction(input: {
+  code: string;
+  name: string;
+}): Promise<{ error: string }> {
+  const guestId = await ensureGuestId();
+  const gameId = await orError(() =>
+    gameService().joinLobby(String(input?.code ?? ""), guestId, String(input?.name ?? "")),
+  );
+  if (typeof gameId !== "string") return gameId;
   redirect(`/game/${gameId}`);
 }
 
@@ -40,6 +60,49 @@ export async function actAction(gameId: string, actions: unknown): Promise<GameR
 
 export async function stepBotAction(gameId: string): Promise<GameResult> {
   return run(gameId, (svc, guestId) => svc.stepBot(gameId, guestId));
+}
+
+export async function addBotAction(gameId: string): Promise<GameResult> {
+  return run(gameId, (svc, guestId) => svc.addBot(gameId, guestId));
+}
+
+export async function removeSeatAction(gameId: string, seat: number): Promise<GameResult> {
+  return run(gameId, async (svc, guestId) => {
+    await svc.removeSeat(gameId, guestId, Number(seat));
+    return svc.getSnapshot(gameId, guestId);
+  });
+}
+
+export async function startGameAction(gameId: string): Promise<GameResult> {
+  return run(gameId, (svc, guestId) => svc.startGame(gameId, guestId));
+}
+
+/** Leave a lobby you joined (not the host), then go home. */
+export async function leaveLobbyAction(gameId: string, seat: number): Promise<{ error: string }> {
+  const guestId = await getGuestId();
+  if (!guestId || typeof gameId !== "string") return { error: "Game not found." };
+  const result = await orError(() => gameService().removeSeat(gameId, guestId, Number(seat)));
+  if (result) return result;
+  redirect("/");
+}
+
+/** The host abandons a lobby, then goes home. */
+export async function cancelLobbyAction(gameId: string): Promise<{ error: string }> {
+  const guestId = await getGuestId();
+  if (!guestId || typeof gameId !== "string") return { error: "Game not found." };
+  const result = await orError(() => gameService().cancelLobby(gameId, guestId));
+  if (result) return result;
+  redirect("/");
+}
+
+/** Run `fn`, turning expected failures into `{ error }`. */
+async function orError<T>(fn: () => Promise<T>): Promise<T | { error: string }> {
+  try {
+    return await fn();
+  } catch (e) {
+    if (e instanceof EngineError || e instanceof GameNotFoundError) return { error: e.message };
+    throw e;
+  }
 }
 
 async function run(

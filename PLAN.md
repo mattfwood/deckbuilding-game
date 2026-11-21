@@ -96,8 +96,7 @@ Starting deck: 7 Penny + 3 Farm. Ties go to the player with fewer turns.
 - [x] Simple bot opponent (`src/engine/bots/bigMoney.ts`), 1-3 bots per game
 - [x] Local state via `useReducer` around the engine; save to localStorage
 - [x] Clicking a supply card auto-plays treasures if needed
-- [ ] Mobile layout polish (supply is very tall on phones)
-- [ ] Card art, animations
+- Mobile layout polish and card art: moved to the backlog
 
 ### Phase 3: Server-authoritative play + Prisma
 
@@ -114,7 +113,7 @@ Starting deck: 7 Penny + 3 Farm. Ties go to the player with fewer turns.
 - [x] Anonymous guest cookie owns your seats (replaced by real accounts in phase 4)
 - [x] Routes: `/` (new game + your games), `/game/[id]`; localStorage saving removed
 - [x] Service tests against a real Postgres test database (`TEST_DATABASE_URL`)
-- [ ] Snapshot table if replays ever get slow (not needed yet: a full game replays in ms)
+- Snapshot table if replays get slow: moved to the backlog (a full game replays in ms today)
 
 Original schema sketch, for reference (the real one is in `prisma/schema.prisma`):
 
@@ -151,19 +150,48 @@ model GameAction {
 
 ### Phase 4: Multiplayer
 
-- [ ] Auth (Auth.js or Clerk)
-- [ ] Lobby: create or join by code, seat assignment, start game
-- [ ] Realtime push. Serverless Next.js doesn't hold websockets, so choose:
-  - **Hosted realtime** (Pusher / Ably / PartyKit): easiest on Vercel (recommended)
-  - Custom Node server + Socket.IO: needs a long-running host (Fly, Railway)
-  - SSE / polling: fine for a prototype, since turn-based play tolerates latency
-- [ ] After each accepted action, broadcast "game updated"; each client fetches
-      its own view (never broadcast full state, which leaks hidden info)
-- [ ] Reconnects, turn timers / AFK handling, rematch
+Smallest working version first, in this order. Each step is playable on its own.
 
-### Phase 5: Polish
+**4a. Lobby + polling** (done)
 
+- [x] Games can start in a `lobby` status; seats fill as people join
+- [x] Invite link `/join/<code>` with a random code separate from the game id
+- [x] Host adds/removes bots and players, starts (2+ seats) or cancels; others can leave
+- [x] Lobby changes lock the game row, so nobody can join after the start
+- [x] `Game.version` bumps on every change; `GET /api/games/<id>?v=N` answers
+      204 when nothing changed, else the caller's own snapshot
+- [x] Clients poll every 1.5s while waiting on someone else (not on their own
+      move, not in a background tab)
+- [x] Any seated human's client drives bot moves; `stepBot` makes repeats harmless
+- [x] "Friends" option on the home page; your games list shows lobbies
+
+**4b. Deploy**
+
+- [ ] Vercel for the app + hosted Postgres (Neon or Supabase); migrations on deploy
+- [ ] Original card names and text before anything is public: the kingdom cards
+      currently use Dominion's names as placeholders
+- [ ] Production checks: secure cookies, error pages, basic rate limiting on actions
+
+**4c. Accounts** (once people play across devices)
+
+- [ ] Auth.js, users stored in our own Postgres; seats move from `guestId` to `userId`
+- [ ] Claim existing guest games on first sign-in
+
+**4d. Realtime push** (only if polling feels slow)
+
+- [ ] Pusher or PartyKit: after each accepted action, broadcast "game updated";
+      clients refetch their own view. Swaps in where polling was.
+
+**Deferred until real games show the need:** reconnect handling beyond
+refetching, turn timers / AFK handling, rematch.
+
+## Backlog (no fixed order)
+
+Ideas to pull from after phase 4, rather than a phase with an end.
+
+- [ ] **Bigger card pool, random 10 per game**: most replay value for the effort
+- [ ] Mobile layout polish (supply is very tall on phones)
 - [ ] Card art and animations
-- [ ] Bigger, more varied card pool
 - [ ] Smarter bots
 - [ ] Spectators, game history, replays (free from the event log)
+- [ ] Snapshot table if replays ever get slow

@@ -11,6 +11,8 @@ datasource db {
 }
 
 enum GameStatus {
+  /// Seats still filling; no engine state yet.
+  lobby
   active
   finished
 }
@@ -21,15 +23,19 @@ enum PlayerKind {
 }
 
 model Game {
-  id        String       @id @default(cuid())
-  seed      String
-  status    GameStatus   @default(active)
+  id         String       @id @default(cuid())
+  seed       String
+  status     GameStatus   @default(active)
+  /// Secret for invite links (/join/<code>). Separate from the id so game ids aren't secrets.
+  inviteCode String       @unique
+  /// Bumped on every change (seat or move), so pollers can cheaply ask "anything new?".
+  version    Int          @default(0)
   /// Setup passed to the engine: { kingdom: CardId[] }. Player names come from GamePlayer.
-  config    Json
-  players   GamePlayer[]
-  actions   GameAction[]
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  config     Json
+  players    GamePlayer[]
+  actions    GameAction[]
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
 }
 
 model GamePlayer {
@@ -43,6 +49,8 @@ model GamePlayer {
   game    Game       @relation(fields: [gameId], references: [id], onDelete: Cascade)
 
   @@unique([gameId, seat])
+  /// One seat per guest per game. Postgres allows many NULLs, so bots are unaffected.
+  @@unique([gameId, guestId])
   @@index([guestId])
 }
 

@@ -25,6 +25,13 @@ A web-based deck-building card game. See [PLAN.md](PLAN.md) for the roadmap.
    npm run dev
    ```
 
+## Testing multiplayer locally
+
+Each browser identity is a cookie, so open the second player on a different
+host: `localhost:3000` for one player and `pat.localhost:3000` for the other
+(subdomains of localhost get their own cookies and are allowed by the dev
+server). Create a game with **Friends**, then open the invite link on the other host.
+
 ## Scripts
 
 | Script               | What it does                                                           |
