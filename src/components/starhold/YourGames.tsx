@@ -13,12 +13,12 @@ export async function YourGames() {
       <h2 id="your-games" className="hud-label">
         Your games
       </h2>
-      <ul className="panel flex flex-col divide-y divide-cyan-300/10">
+      <ul className="panel flex flex-col divide-y divide-line">
         {games.map((g) => (
           <li key={g.id}>
             <Link
               href={`/game/${g.id}`}
-              className="flex items-center justify-between gap-3 px-3 py-2 text-sm hover:bg-slate-800/70"
+              className="flex items-center justify-between gap-3 px-3 py-2 text-sm hover:bg-raise"
             >
               <span>{g.opponents.length ? `vs ${g.opponents.join(", ")}` : "Just you so far"}</span>
               <span className="text-xs text-dim">

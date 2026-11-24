@@ -73,7 +73,7 @@ function SupplyLegend({
   }
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-dim">
-      <span className="font-hud text-base font-semibold tracking-wide text-amber-200">
+      <span className="text-base font-semibold tracking-wide text-ink">
         {coins} credit{coins === 1 ? "" : "s"} to spend
         {potentialCoins > coins && (
           <span className="text-sm font-medium text-dim">
@@ -83,16 +83,16 @@ function SupplyLegend({
         )}
       </span>
       <span className="flex items-center gap-1.5">
-        <span className="inline-block size-3 rounded-sm ring-2 ring-signal" /> Affordable now
+        <span className="inline-block size-3 rounded-sm ring-2 ring-accent" /> Affordable now
       </span>
       {potentialCoins > coins && (
         <span className="flex items-center gap-1.5">
-          <span className="inline-block size-3 rounded-sm outline-2 outline-dashed outline-cyan-300/70" />{" "}
+          <span className="inline-block size-3 rounded-sm outline-2 outline-dashed outline-accent/70" />{" "}
           After playing resources
         </span>
       )}
       <span className="flex items-center gap-1.5">
-        <span className="inline-block size-3 rounded-sm bg-slate-500 opacity-40" /> Too expensive
+        <span className="inline-block size-3 rounded-sm bg-faint opacity-40" /> Too expensive
       </span>
     </div>
   );

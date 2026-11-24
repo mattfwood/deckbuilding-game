@@ -65,7 +65,7 @@ export function Lobby({ snap, send, error, onDismissError }: LobbyProps) {
       <header className="flex items-center justify-between gap-3">
         <div>
           <Wordmark as="h1" />
-          <p className="hud-label mt-1 text-cyan-200/80">Waiting for colonists</p>
+          <p className="hud-label mt-1 text-ink">Waiting for colonists</p>
         </div>
         <Link href="/" className="btn-secondary">
           All games
@@ -95,10 +95,10 @@ export function Lobby({ snap, send, error, onDismissError }: LobbyProps) {
         <h2 id="seats" className="hud-label">
           Players ({snap.seats.length}/{snap.maxSeats})
         </h2>
-        <ul className="panel flex flex-col divide-y divide-cyan-300/10">
+        <ul className="panel flex flex-col divide-y divide-line">
           {snap.seats.map((seat, i) => (
             <li key={i} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
-              <span className="font-hud font-semibold tracking-wide">
+              <span className="font-semibold tracking-wide">
                 {seat.name}
                 <span className="ml-2 text-xs text-dim">
                   {[i === 0 && "host", seat.kind === "bot" && "bot", i === you && "you"]
@@ -128,7 +128,7 @@ export function Lobby({ snap, send, error, onDismissError }: LobbyProps) {
       {(error || leaveError) && (
         <div
           role="alert"
-          className="flex items-center justify-between gap-3 rounded-md border border-rose-500/60 bg-rose-950/70 px-3 py-2 text-sm text-rose-100"
+          className="flex items-center justify-between gap-3 rounded-md border border-danger/50 bg-danger/10 px-3 py-2 text-sm text-ink"
         >
           {error ?? leaveError}
           <button

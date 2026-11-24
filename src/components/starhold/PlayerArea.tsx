@@ -81,7 +81,7 @@ export function PlayerArea({
   return (
     <section aria-label="Your area" className="panel flex flex-col gap-3 p-3 sm:p-4">
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
-        <span className="font-hud text-base font-bold tracking-wide text-cyan-100">{me.name}</span>
+        <span className="text-base font-bold tracking-wide text-ink">{me.name}</span>
         <Stat label="Actions" value={view.actions} active={isCurrent} />
         <Stat label="Buys" value={view.buys} active={isCurrent} />
         <Stat
@@ -100,7 +100,7 @@ export function PlayerArea({
           ).map(([tab, label]) => (
             <button
               key={tab}
-              className="rounded-sm border border-cyan-300/25 px-2 py-0.5 font-hud text-xs font-semibold tracking-wide text-cyan-100/90 uppercase hover:border-cyan-300/60 hover:bg-slate-800/80"
+              className="rounded-md border border-line px-2 py-0.5 text-xs text-dim hover:bg-raise hover:text-ink"
               onClick={() => onViewCards(tab)}
             >
               {label}
@@ -198,8 +198,8 @@ function DecisionBar({
   if (!decision) {
     if (!waitingOn) return null;
     return (
-      <p className="flex items-center gap-2 rounded-md border border-cyan-300/15 bg-slate-950/60 px-3 py-2 text-sm text-dim">
-        <span aria-hidden className="size-2 animate-pulse rounded-full bg-signal" />
+      <p className="flex items-center gap-2 rounded-md border border-line bg-void px-3 py-2 text-sm text-dim">
+        <span aria-hidden className="size-2 animate-pulse rounded-full bg-accent" />
         Waiting for {waitingOn}…
       </p>
     );
@@ -207,7 +207,7 @@ function DecisionBar({
 
   const you = view.you;
   const shell =
-    "flex flex-wrap items-center gap-3 rounded-md border border-violet-400/60 bg-violet-950/60 px-3 py-2 text-sm text-violet-100 shadow-[0_0_16px_rgb(167_139_250/0.2)]";
+    "flex flex-wrap items-center gap-3 rounded-md border border-line border-l-2 border-l-accent bg-panel px-3 py-2 text-sm text-dim";
 
   switch (decision.kind) {
     case "selectFromHand": {
@@ -215,7 +215,7 @@ function DecisionBar({
       return (
         <div className={shell} role="status">
           <strong>{decision.prompt}</strong>
-          <span className="text-violet-200/80">
+          <span className="text-dim">
             Selected {selected.length}
             {decision.min === decision.max ? ` of ${decision.max}` : ` (up to ${decision.max})`}
           </span>
@@ -239,7 +239,7 @@ function DecisionBar({
       return (
         <div className={shell} role="status">
           <strong>{decision.prompt}</strong>
-          <span className="text-violet-200/80">Pick a highlighted card in the supply.</span>
+          <span className="text-dim">Pick a highlighted card in the supply.</span>
         </div>
       );
     case "revealReaction":

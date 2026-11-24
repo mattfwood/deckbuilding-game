@@ -1,43 +1,17 @@
 import { getCard, type CardId, type CardType } from "@/engine";
 
-/** Per-type colors: the frame, the panel tint, the header stripe, and the title/label text. */
-const TONES: Record<CardType, { frame: string; tint: string; stripe: string; text: string }> = {
-  treasure: {
-    frame: "border-amber-400/60",
-    tint: "from-amber-900/70",
-    stripe: "bg-amber-400",
-    text: "text-amber-200",
-  },
-  victory: {
-    frame: "border-teal-400/60",
-    tint: "from-teal-900/70",
-    stripe: "bg-teal-400",
-    text: "text-teal-200",
-  },
-  curse: {
-    frame: "border-fuchsia-500/60",
-    tint: "from-fuchsia-950/90",
-    stripe: "bg-fuchsia-500",
-    text: "text-fuchsia-200",
-  },
-  reaction: {
-    frame: "border-sky-400/60",
-    tint: "from-sky-900/70",
-    stripe: "bg-sky-400",
-    text: "text-sky-200",
-  },
-  attack: {
-    frame: "border-rose-500/60",
-    tint: "from-rose-950/90",
-    stripe: "bg-rose-500",
-    text: "text-rose-200",
-  },
-  action: {
-    frame: "border-slate-400/40",
-    tint: "from-slate-700/60",
-    stripe: "bg-slate-300",
-    text: "text-slate-100",
-  },
+/**
+ * Cards are neutral; a thin top stripe marks the category, using only the
+ * palette's two colors plus white:
+ *   resource = accent, victory = white, hazard/attack = danger, other actions = none.
+ */
+const STRIPE: Record<CardType, string> = {
+  treasure: "bg-accent",
+  victory: "bg-ink",
+  curse: "bg-danger",
+  attack: "bg-danger",
+  reaction: "bg-transparent",
+  action: "bg-transparent",
 };
 
 /** How each type reads on a card. Internal names stay generic; these fit the colony theme. */
@@ -50,11 +24,11 @@ const TYPE_LABELS: Record<CardType, string> = {
   reaction: "reaction",
 };
 
-/** The type that decides a card's color, most specific first. */
-function toneFor(id: CardId) {
+/** The type that decides a card's stripe, most specific first. */
+function stripeFor(id: CardId): string {
   const types = getCard(id).types;
-  const order: CardType[] = ["reaction", "attack", "curse", "victory", "treasure", "action"];
-  return TONES[order.find((t) => types.includes(t)) ?? "action"];
+  const order: CardType[] = ["curse", "attack", "victory", "treasure", "reaction", "action"];
+  return STRIPE[order.find((t) => types.includes(t)) ?? "action"];
 }
 
 export interface CardProps {
@@ -71,16 +45,14 @@ export interface CardProps {
   title?: string;
 }
 
-/** Cyan means "you can act on this", so it never clashes with a card's own type color. */
+/** Accent means "you can act on this"; white marks your own selection. */
 const STATE_RING = {
   idle: "",
-  available:
-    "ring-2 ring-signal shadow-[0_0_18px_rgb(34_211_238/0.45)] hover:-translate-y-0.5 cursor-pointer",
+  available: "ring-2 ring-accent hover:-translate-y-0.5 cursor-pointer",
   reachable:
-    "outline-2 outline-dashed outline-offset-2 outline-cyan-300/70 hover:-translate-y-0.5 cursor-pointer",
-  selected: "ring-2 ring-amber-300 shadow-[0_0_18px_rgb(252_211_77/0.5)] -translate-y-2",
-  option:
-    "ring-2 ring-violet-400 shadow-[0_0_16px_rgb(167_139_250/0.45)] hover:-translate-y-0.5 cursor-pointer",
+    "outline-1 outline-dashed outline-offset-2 outline-accent/70 hover:-translate-y-0.5 cursor-pointer",
+  selected: "ring-2 ring-ink -translate-y-2",
+  option: "ring-1 ring-accent/70 hover:-translate-y-0.5 cursor-pointer",
 };
 
 export function Card({
@@ -94,13 +66,10 @@ export function Card({
   title,
 }: CardProps) {
   const card = getCard(id);
-  const tone = toneFor(id);
-  const sizing = size === "sm" ? "w-28 min-h-32 text-[11px]" : "w-32 min-h-44 text-xs";
+  const sizing = size === "sm" ? "w-28 min-h-32 text-[11px]" : "w-32 min-h-36 text-xs";
   const className = [
-    "relative flex flex-col overflow-visible rounded-md border bg-gradient-to-b to-slate-950 to-70% text-left shadow-lg shadow-black/50 transition",
+    "relative flex flex-col rounded-md border border-line bg-raise text-left transition",
     sizing,
-    tone.frame,
-    tone.tint,
     STATE_RING[state],
     dimmed ? "opacity-40" : "",
     muted ? "grayscale" : "",
@@ -108,34 +77,25 @@ export function Card({
 
   const body = (
     <>
-      <span aria-hidden className={`h-1 rounded-t-[5px] ${tone.stripe}`} />
+      <span aria-hidden className={`h-0.5 rounded-t-md ${stripeFor(id)}`} />
       <div className="flex flex-1 flex-col gap-1 p-2">
         <div className="flex items-start justify-between gap-1">
+          <span className="text-[12px] leading-tight font-semibold text-ink">{card.name}</span>
           <span
-            className={`font-hud text-[12px] leading-tight font-bold tracking-wide uppercase ${tone.text}`}
-          >
-            {card.name}
-          </span>
-          <span
-            className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-sm bg-amber-300 px-1 font-mono text-[11px] font-bold text-slate-950 shadow-[0_0_8px_rgb(252_211_77/0.5)]"
+            className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded border border-line px-1 font-mono text-[11px] text-ink"
             aria-label={`Cost ${card.cost}`}
           >
             {card.cost}
           </span>
         </div>
-        <span
-          className={`font-hud text-[10px] tracking-[0.16em] uppercase opacity-70 ${tone.text}`}
-        >
-          {card.types.map((t) => TYPE_LABELS[t]).join(" · ")}
+        <span className="flex items-baseline justify-between gap-1 text-[10px] text-faint">
+          <span className="tracking-[0.12em] uppercase">
+            {card.types.map((t) => TYPE_LABELS[t]).join(" · ")}
+          </span>
+          {count !== undefined && <span className="font-mono">×{count}</span>}
         </span>
-        <span aria-hidden className={`h-px w-full opacity-30 ${tone.stripe}`} />
-        <p className="leading-snug whitespace-pre-line text-slate-300">{card.text}</p>
+        <p className="mt-1 leading-snug whitespace-pre-line text-dim">{card.text}</p>
       </div>
-      {count !== undefined && (
-        <span className="absolute -right-2 -bottom-2 rounded-sm border border-cyan-300/40 bg-void px-1.5 py-0.5 font-mono text-[11px] font-semibold text-cyan-100">
-          {count}
-        </span>
-      )}
     </>
   );
 

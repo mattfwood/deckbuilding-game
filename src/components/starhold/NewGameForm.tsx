@@ -54,10 +54,10 @@ export function NewGameForm() {
             {[1, 2, 3, FRIENDS].map((n) => (
               <label
                 key={n}
-                className={`flex-1 cursor-pointer rounded-md border px-3 py-2 text-center font-hud text-sm font-semibold tracking-wide uppercase transition has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-signal ${
+                className={`flex-1 cursor-pointer rounded-md border px-3 py-2 text-center text-sm font-medium transition has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent ${
                   bots === n
-                    ? "border-signal bg-cyan-400/15 text-cyan-100 shadow-[0_0_14px_rgb(34_211_238/0.3)]"
-                    : "border-cyan-300/20 text-dim hover:border-cyan-300/50"
+                    ? "border-accent bg-accent/10 text-ink"
+                    : "border-line text-dim hover:border-accent"
                 }`}
               >
                 <input
@@ -81,7 +81,7 @@ export function NewGameForm() {
           {pending ? "Starting…" : bots === FRIENDS ? "Create game" : "Start game"}
         </button>
         {error && (
-          <p role="alert" className="text-sm text-rose-300">
+          <p role="alert" className="text-sm text-danger">
             {error}
           </p>
         )}

@@ -23,7 +23,7 @@ export function GameLog({ log }: { log: LogEntry[] }) {
             key={i}
             className={
               e.message.startsWith("Turn ")
-                ? "mt-2 font-hud font-semibold tracking-wide text-cyan-200"
+                ? "mt-2 font-semibold tracking-wide text-ink"
                 : "text-dim"
             }
           >

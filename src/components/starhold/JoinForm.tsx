@@ -33,7 +33,7 @@ export function JoinForm({ code }: { code: string }) {
         {pending ? "Joining…" : "Join game"}
       </button>
       {error && (
-        <p role="alert" className="text-sm text-rose-300">
+        <p role="alert" className="text-sm text-danger">
           {error}
         </p>
       )}

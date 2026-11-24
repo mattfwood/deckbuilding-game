@@ -85,7 +85,7 @@ export function Board({ view, error, act, onDismissError }: BoardProps) {
         <header className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <Wordmark as="h1" />
-            <p className="hud-label mt-1 text-cyan-200/80">{turnLabel}</p>
+            <p className="hud-label mt-1 text-ink">{turnLabel}</p>
           </div>
           <Link href="/" className="btn-secondary">
             All games
@@ -115,7 +115,7 @@ export function Board({ view, error, act, onDismissError }: BoardProps) {
         {error && (
           <div
             role="alert"
-            className="flex items-center justify-between gap-3 rounded-md border border-rose-500/60 bg-rose-950/70 px-3 py-2 text-sm text-rose-100"
+            className="flex items-center justify-between gap-3 rounded-md border border-danger/50 bg-danger/10 px-3 py-2 text-sm text-ink"
           >
             {error}
             <button className="text-xs underline" onClick={onDismissError}>

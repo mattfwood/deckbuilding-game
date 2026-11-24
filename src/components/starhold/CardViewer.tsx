@@ -52,25 +52,22 @@ export function CardViewer({ view, tab, onTab, onClose }: CardViewerProps) {
 
   return (
     <div
-      className="fixed inset-0 z-20 flex items-end justify-center bg-black/70 backdrop-blur-[2px] sm:items-center sm:p-4"
+      className="fixed inset-0 z-20 flex items-end justify-center bg-black/70 sm:items-center sm:p-4"
       onClick={onClose}
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="card-viewer-title"
-        className="flex max-h-[85vh] w-full max-w-3xl flex-col gap-4 rounded-t-xl border border-cyan-300/30 bg-hull/95 p-4 shadow-[0_0_40px_rgb(34_211_238/0.15)] backdrop-blur sm:rounded-xl sm:p-6"
+        className="flex max-h-[85vh] w-full max-w-3xl flex-col gap-4 rounded-t-xl border border-line bg-panel p-4 sm:rounded-xl sm:p-6"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between gap-3">
-          <h2
-            id="card-viewer-title"
-            className="font-hud text-lg font-bold tracking-wide text-cyan-50 uppercase"
-          >
+          <h2 id="card-viewer-title" className="text-lg font-semibold text-ink">
             Your cards
           </h2>
           <button
-            className="rounded-md px-2 py-1 text-sm text-dim hover:bg-slate-800/70"
+            className="rounded-md px-2 py-1 text-sm text-dim hover:bg-raise"
             onClick={onClose}
             aria-label="Close"
           >
@@ -78,15 +75,15 @@ export function CardViewer({ view, tab, onTab, onClose }: CardViewerProps) {
           </button>
         </div>
 
-        <div role="tablist" className="flex gap-1 border-b border-cyan-300/20">
+        <div role="tablist" className="flex gap-1 border-b border-line">
           {TABS.map((t) => (
             <button
               key={t.id}
               role="tab"
               aria-selected={tab === t.id}
-              className={`-mb-px border-b-2 px-3 py-1.5 font-hud text-sm font-semibold tracking-wide uppercase ${
+              className={`-mb-px border-b-2 px-3 py-1.5 text-sm font-medium ${
                 tab === t.id
-                  ? "border-signal text-cyan-100"
+                  ? "border-accent text-ink"
                   : "border-transparent text-dim hover:text-ink"
               }`}
               onClick={() => onTab(t.id)}
