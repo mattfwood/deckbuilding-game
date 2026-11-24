@@ -10,6 +10,8 @@ import { Opponents } from "./Opponents";
 import { PlayerArea } from "./PlayerArea";
 import { Supply, type SupplyDisplay } from "./Supply";
 import { Wordmark } from "./Wordmark";
+import { gainText } from "./Gain";
+import { diffTurn, noFx, type TurnFx } from "./turnFx";
 
 interface BoardProps {
   /** What the server lets this player see. */
@@ -29,6 +31,16 @@ export function Board({ view, error, act, onDismissError }: BoardProps) {
   // Lives here, not in PlayerArea, because PlayerArea remounts on every new log entry.
   const [viewerTab, setViewerTab] = useState<CardViewerTab | null>(null);
   const [logOpen, setLogOpen] = useState(false);
+
+  // What the last update gave the current player, for the "+2 actions" feedback.
+  // Derived while rendering from the previous view (React's "store information
+  // from previous renders" pattern), so it's ready on the same frame as the change.
+  const [prevView, setPrevView] = useState(view);
+  const [fx, setFx] = useState<TurnFx>(() => noFx(0));
+  if (view !== prevView) {
+    setPrevView(view);
+    setFx(diffTurn(prevView, view, fx.id + 1));
+  }
   useEffect(() => {
     if (!logOpen) return;
     const close = (e: KeyboardEvent) => e.key === "Escape" && setLogOpen(false);
@@ -86,7 +98,7 @@ export function Board({ view, error, act, onDismissError }: BoardProps) {
           <Wordmark size="sm" />
         </Link>
         <TurnStatus view={view} waitingOn={waitingOn} />
-        <Opponents view={view} actor={actor} />
+        <Opponents view={view} actor={actor} fx={fx} />
         <span className="ml-auto flex gap-2">
           <button className="btn-secondary lg:hidden" onClick={() => setLogOpen(true)}>
             Log
@@ -117,7 +129,12 @@ export function Board({ view, error, act, onDismissError }: BoardProps) {
         error={error}
         onDismissError={onDismissError}
         onViewCards={setViewerTab}
+        fx={fx.seat === you ? fx : null}
       />
+
+      <p aria-live="polite" className="sr-only">
+        {announce(view, fx)}
+      </p>
 
       {logOpen && (
         <div
@@ -179,4 +196,17 @@ function TurnStatus({ view, waitingOn }: { view: PlayerView; waitingOn: string |
       <span className="font-mono text-xs text-dim">Turn {view.turnNumber}</span>
     </span>
   );
+}
+
+/** A sentence for screen readers, e.g. "Ada: +3 cards · +1 action". */
+function announce(view: PlayerView, fx: TurnFx): string {
+  if (fx.seat === null) return "";
+  const text = gainText([
+    [fx.cards, "card", "cards"],
+    [fx.actions, "action", "actions"],
+    [fx.buys, "buy", "buys"],
+    [fx.credits, "credit", "credits"],
+  ]);
+  if (!text) return "";
+  return `${fx.seat === view.you ? "You" : view.players[fx.seat].name}: ${text}`;
 }

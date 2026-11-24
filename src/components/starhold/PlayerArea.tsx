@@ -11,6 +11,8 @@ import {
 } from "@/engine";
 import { Card } from "./Card";
 import type { CardViewerTab } from "./CardViewer";
+import { Gain } from "./Gain";
+import type { TurnFx } from "./turnFx";
 
 interface PlayerAreaProps {
   view: PlayerView;
@@ -23,6 +25,8 @@ interface PlayerAreaProps {
   error: string | null;
   onDismissError: () => void;
   onViewCards: (tab: CardViewerTab) => void;
+  /** What your last play gave you, when it's your turn; drives the "+N" feedback. */
+  fx: TurnFx | null;
 }
 
 /**
@@ -39,6 +43,7 @@ export function PlayerArea({
   error,
   onDismissError,
   onViewCards,
+  fx,
 }: PlayerAreaProps) {
   const [selected, setSelected] = useState<number[]>([]);
   const you = view.you;
@@ -97,17 +102,25 @@ export function PlayerArea({
   return (
     <section
       aria-label="Your area"
-      className="flex max-h-[55dvh] shrink-0 flex-col gap-2.5 overflow-y-auto border-t border-line bg-panel px-4 py-3"
+      className="flex shrink-0 flex-col gap-2.5 border-t border-line bg-panel px-4 py-3 [@media(max-height:560px)]:max-h-[60dvh] [@media(max-height:560px)]:overflow-y-auto"
     >
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
         <span className="text-base font-semibold text-ink">{me.name}</span>
-        <Stat label="Actions" value={view.actions} active={isCurrent} />
-        <Stat label="Buys" value={view.buys} active={isCurrent} />
+        <Stat
+          label="Actions"
+          value={view.actions}
+          active={isCurrent}
+          gain={fx?.actions}
+          fxId={fx?.id}
+        />
+        <Stat label="Buys" value={view.buys} active={isCurrent} gain={fx?.buys} fxId={fx?.id} />
         <Stat
           label="Credits"
           value={view.coins}
           active={isCurrent}
           hint={myTurn && handResources > 0 ? `+${handResources} in hand` : undefined}
+          gain={fx?.credits}
+          fxId={fx?.id}
         />
         <span className="flex gap-1">
           {(
@@ -119,10 +132,14 @@ export function PlayerArea({
           ).map(([tab, label]) => (
             <button
               key={tab}
-              className="rounded-md border border-line px-2 py-0.5 text-xs text-dim hover:bg-raise hover:text-ink"
+              className="relative rounded-md border border-line px-2 py-0.5 text-xs text-dim hover:bg-raise hover:text-ink"
               onClick={() => onViewCards(tab)}
             >
               {label}
+              {/* Drawn cards come off the deck, so that's where "+3 cards" rises from. */}
+              {tab === "deck" && fx && fx.cards > 0 && (
+                <Gain key={fx.id} text={`+${fx.cards} card${fx.cards === 1 ? "" : "s"}`} />
+              )}
             </button>
           ))}
         </span>
@@ -179,11 +196,14 @@ export function PlayerArea({
       <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pt-1.5 pb-1">
         {view.hand.map((id, i) => {
           const state = cardState(i);
+          const fresh = fx?.freshHand.indexOf(i) ?? -1;
           return (
             <Card
               key={i}
               id={id}
               state={state}
+              fresh={fresh >= 0}
+              freshDelay={fresh * 90}
               muted={!selecting && myTurn && state === "idle"}
               onClick={state === "idle" ? undefined : () => onCardClick(i)}
             />
@@ -213,16 +233,24 @@ function Stat({
   value,
   active,
   hint,
+  gain = 0,
+  fxId,
 }: {
   label: string;
   value: number;
   active: boolean;
   hint?: string;
+  /** Rises as "+N" above the number when your last play added to it. */
+  gain?: number;
+  fxId?: number;
 }) {
   return (
     <span className={`flex items-baseline gap-1.5 ${active ? "" : "opacity-50"}`}>
       <span className="hud-label">{label}</span>
-      <strong className="font-mono text-lg text-ink tabular-nums">{active ? value : "–"}</strong>
+      <strong className="relative font-mono text-lg text-ink tabular-nums">
+        {active ? value : "–"}
+        {gain > 0 && <Gain key={fxId} text={`+${gain}`} />}
+      </strong>
       {hint && <span className="text-xs text-dim">{hint}</span>}
     </span>
   );

@@ -24,6 +24,9 @@ export interface CardProps {
   state?: "idle" | "playable" | "selected";
   /** Faded: can't be used right now. */
   muted?: boolean;
+  /** Just drawn: slides in with a brief accent outline, after `freshDelay` ms. */
+  fresh?: boolean;
+  freshDelay?: number;
   onClick?: () => void;
   title?: string;
 }
@@ -34,7 +37,17 @@ const STATE_STYLE = {
   selected: "-translate-y-1.5 border-ink ring-1 ring-ink",
 };
 
-export function Card({ id, count, size = "md", state = "idle", muted, onClick, title }: CardProps) {
+export function Card({
+  id,
+  count,
+  size = "md",
+  state = "idle",
+  muted,
+  fresh,
+  freshDelay = 0,
+  onClick,
+  title,
+}: CardProps) {
   const card = getCard(id);
   const sizing = size === "sm" ? "w-28 min-h-28 text-[11px]" : "w-32 min-h-32 text-xs";
   const className = [
@@ -42,7 +55,9 @@ export function Card({ id, count, size = "md", state = "idle", muted, onClick, t
     sizing,
     STATE_STYLE[state],
     muted ? "opacity-40" : "",
+    fresh ? "motion-safe:animate-draw-in" : "",
   ].join(" ");
+  const style = fresh ? { animationDelay: `${freshDelay}ms` } : undefined;
 
   const body = (
     <>
@@ -64,6 +79,7 @@ export function Card({ id, count, size = "md", state = "idle", muted, onClick, t
       <button
         type="button"
         className={className}
+        style={style}
         onClick={onClick}
         title={title}
         aria-label={card.name}
@@ -74,7 +90,7 @@ export function Card({ id, count, size = "md", state = "idle", muted, onClick, t
     );
   }
   return (
-    <div className={className} title={title}>
+    <div className={className} style={style} title={title}>
       {body}
     </div>
   );

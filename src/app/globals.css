@@ -25,6 +25,65 @@
   --font-hud: var(--font-geist-sans);
 }
 
+/*
+ * Feedback when a played card gives you something: a "+N" that rises and fades
+ * from the number it changed, and drawn cards that slide into your hand with a
+ * brief accent outline. With reduced motion, the label fades without moving and
+ * cards appear in place.
+ */
+@theme {
+  --animate-gain: gain 1.6s ease-out forwards;
+  --animate-gain-still: gain-still 1.6s ease-out forwards;
+  --animate-draw-in: draw-in 1.4s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+
+  @keyframes gain {
+    0% {
+      opacity: 0;
+      transform: translateY(6px) scale(0.9);
+    }
+    12% {
+      opacity: 1;
+      transform: translateY(0) scale(1.1);
+    }
+    25% {
+      transform: translateY(-2px) scale(1);
+    }
+    70% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(-16px);
+    }
+  }
+
+  @keyframes gain-still {
+    0%,
+    70% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes draw-in {
+    0% {
+      opacity: 0;
+      transform: translateY(24px) scale(0.95);
+      border-color: var(--color-accent);
+    }
+    25% {
+      opacity: 1;
+      transform: none;
+      border-color: var(--color-accent);
+    }
+    100% {
+      border-color: var(--color-line);
+    }
+  }
+}
+
 :root {
   color-scheme: dark;
 }
