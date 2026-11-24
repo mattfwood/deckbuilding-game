@@ -1,16 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getCard, hasType, type Action, type CardId, type PlayerView } from "@/engine";
-import { Card } from "./Card";
 import { CardViewer, type CardViewerTab } from "./CardViewer";
 import { GameLog } from "./GameLog";
 import { GameOver } from "./GameOver";
 import { Opponents } from "./Opponents";
 import { PlayerArea } from "./PlayerArea";
-import { Wordmark } from "./Wordmark";
 import { Supply, type SupplyDisplay } from "./Supply";
+import { Wordmark } from "./Wordmark";
 
 interface BoardProps {
   /** What the server lets this player see. */
@@ -21,15 +20,26 @@ interface BoardProps {
   onDismissError: () => void;
 }
 
+/**
+ * One screen, no page scroll: a header bar with whose turn it is, the supply
+ * (which scrolls on its own if it must), the log in a side column, and your
+ * hand docked at the bottom so playing and buying never need a scroll.
+ */
 export function Board({ view, error, act, onDismissError }: BoardProps) {
   // Lives here, not in PlayerArea, because PlayerArea remounts on every new log entry.
   const [viewerTab, setViewerTab] = useState<CardViewerTab | null>(null);
+  const [logOpen, setLogOpen] = useState(false);
+  useEffect(() => {
+    if (!logOpen) return;
+    const close = (e: KeyboardEvent) => e.key === "Escape" && setLogOpen(false);
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, [logOpen]);
   const you = view.you;
   const actor = view.actor;
   const pending = view.pendingDecision;
   const myDecision = pending?.player === you ? pending : null;
   const myTurn = view.currentPlayer === you && !pending && view.phase !== "gameOver";
-  const current = view.players[view.currentPlayer];
 
   const potentialCoins =
     view.coins +
@@ -38,22 +48,18 @@ export function Board({ view, error, act, onDismissError }: BoardProps) {
       .reduce((sum, c) => sum + (getCard(c).coins ?? 0), 0);
 
   /**
-   * How a supply card looks right now:
-   * - available: you can buy it with the coins you've already played
-   * - reachable: you can buy it once you play the rest of your treasures
-   * - muted: out of reach this turn (only once you're buying, so the action phase stays calm)
+   * Nothing is highlighted: what you can buy (now, or by playing your
+   * resources) is clickable; what you can't is faded once you're buying.
    */
   function supplyDisplay(id: CardId): SupplyDisplay {
     if (myDecision?.kind === "selectFromSupply") {
       const isOption = myDecision.options.includes(id);
-      return { state: isOption ? "option" : "idle", muted: !isOption };
+      return { clickable: isOption, muted: !isOption };
     }
-    if (!myTurn) return { state: "idle", muted: false };
-    const cost = getCard(id).cost;
-    const buyable = view.buys > 0 && view.supply[id] > 0;
-    if (buyable && cost <= view.coins) return { state: "available", muted: false };
-    if (buyable && cost <= potentialCoins) return { state: "reachable", muted: false };
-    return { state: "idle", muted: view.phase === "buy" };
+    if (!myTurn) return { clickable: false, muted: false };
+    const canBuy =
+      view.buys > 0 && (view.supply[id] ?? 0) > 0 && getCard(id).cost <= potentialCoins;
+    return { clickable: canBuy, muted: !canBuy && view.phase === "buy" };
   }
 
   function onPickSupply(id: CardId) {
@@ -65,80 +71,75 @@ export function Board({ view, error, act, onDismissError }: BoardProps) {
       });
       return;
     }
-    // Buying auto-plays your treasures if you need their coins.
+    // Buying auto-plays your resources if you need their credits.
     const buy: Action = { type: "buy", player: you, cardId: id };
     if (getCard(id).cost > view.coins) act({ type: "playAllTreasures", player: you }, buy);
     else act(buy);
   }
 
   const waitingOn = actor !== null && actor !== you ? view.players[actor].name : null;
-  const turnLabel =
-    view.phase === "gameOver"
-      ? "Game over"
-      : `Turn ${view.turnNumber} · ${view.currentPlayer === you ? "Your turn" : `${current.name}'s turn`} · ${
-          view.phase === "action" ? "Action phase" : "Buy phase"
-        }`;
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 lg:flex-row">
-      <main className="flex min-w-0 flex-1 flex-col gap-6">
-        <header className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <Wordmark as="h1" />
-            <p className="hud-label mt-1 text-ink">{turnLabel}</p>
-          </div>
+    <div className="flex h-dvh flex-col">
+      <header className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 border-b border-line px-4 py-2.5">
+        <Link href="/" aria-label="All games" className="hover:opacity-80">
+          <Wordmark size="sm" />
+        </Link>
+        <TurnStatus view={view} waitingOn={waitingOn} />
+        <Opponents view={view} actor={actor} />
+        <span className="ml-auto flex gap-2">
+          <button className="btn-secondary lg:hidden" onClick={() => setLogOpen(true)}>
+            Log
+          </button>
           <Link href="/" className="btn-secondary">
             All games
           </Link>
-        </header>
+        </span>
+      </header>
 
-        <Opponents view={view} actor={actor} />
+      <div className="flex min-h-0 flex-1">
+        <main className="min-w-0 flex-1 overflow-y-auto px-4 py-4">
+          <Supply view={view} display={supplyDisplay} onPick={onPickSupply} />
+        </main>
+        <aside className="hidden w-72 shrink-0 border-l border-line lg:block">
+          <GameLog log={view.log} />
+        </aside>
+      </div>
 
-        <Supply
-          view={view}
-          display={supplyDisplay}
-          onPick={onPickSupply}
-          legend={myTurn ? { coins: view.coins, potentialCoins, buys: view.buys } : null}
-        />
+      <PlayerArea
+        // Remount on each new decision so the card selection resets.
+        key={`${view.log.length}-${pending?.kind ?? "none"}`}
+        view={view}
+        act={act}
+        myTurn={myTurn}
+        myDecision={myDecision}
+        waitingOn={waitingOn}
+        error={error}
+        onDismissError={onDismissError}
+        onViewCards={setViewerTab}
+      />
 
-        <section aria-label="In play" className="panel flex min-h-24 flex-col gap-2 p-3">
-          <h2 className="hud-label">
-            In play{view.currentPlayer !== you ? ` (${current.name})` : ""}
-          </h2>
-          <div className="flex flex-wrap gap-2">
-            {view.players[view.currentPlayer].inPlay.map((id, i) => (
-              <Card key={i} id={id} size="sm" />
-            ))}
-          </div>
-        </section>
-
-        {error && (
+      {logOpen && (
+        <div
+          className="fixed inset-0 z-20 flex justify-end bg-black/60 lg:hidden"
+          onClick={() => setLogOpen(false)}
+        >
           <div
-            role="alert"
-            className="flex items-center justify-between gap-3 rounded-md border border-danger/50 bg-danger/10 px-3 py-2 text-sm text-ink"
+            role="dialog"
+            aria-label="Colony log"
+            className="flex h-full w-80 max-w-[85vw] flex-col border-l border-line bg-panel"
+            onClick={(e) => e.stopPropagation()}
           >
-            {error}
-            <button className="text-xs underline" onClick={onDismissError}>
-              Dismiss
+            <button
+              className="self-end px-4 py-2 text-sm text-dim hover:text-ink"
+              onClick={() => setLogOpen(false)}
+            >
+              Close
             </button>
+            <GameLog log={view.log} />
           </div>
-        )}
-
-        <PlayerArea
-          // Remount on each new decision so the card selection resets.
-          key={`${view.log.length}-${pending?.kind ?? "none"}`}
-          view={view}
-          act={act}
-          myTurn={myTurn}
-          myDecision={myDecision}
-          waitingOn={waitingOn}
-          onViewCards={setViewerTab}
-        />
-      </main>
-
-      <aside className="lg:w-72 lg:shrink-0">
-        <GameLog log={view.log} />
-      </aside>
+        </div>
+      )}
 
       {viewerTab && (
         <CardViewer
@@ -151,5 +152,31 @@ export function Board({ view, error, act, onDismissError }: BoardProps) {
 
       {view.result && <GameOver view={view} />}
     </div>
+  );
+}
+
+/** Whose turn it is, as the most visible thing in the header. */
+function TurnStatus({ view, waitingOn }: { view: PlayerView; waitingOn: string | null }) {
+  if (view.phase === "gameOver") {
+    return <span className="text-sm font-semibold text-ink">Game over</span>;
+  }
+  const phase = view.phase === "action" ? "Action phase" : "Buy phase";
+  const mine = view.currentPlayer === view.you;
+  // A decision you owe on someone else's turn (e.g. reacting to an attack) is also your move.
+  const yourMove = view.actor === view.you;
+  return (
+    <span className="flex items-center gap-2 text-sm">
+      {yourMove ? (
+        <span className="rounded-full bg-accent px-3 py-1 font-semibold text-void">
+          {mine ? `Your turn · ${phase}` : "Your move"}
+        </span>
+      ) : (
+        <span className="flex items-center gap-2 rounded-full border border-line px-3 py-1 text-ink">
+          <span aria-hidden className="size-1.5 animate-pulse rounded-full bg-accent" />
+          {waitingOn ? `${waitingOn}'s move` : `${view.players[view.currentPlayer].name}'s turn`}
+        </span>
+      )}
+      <span className="font-mono text-xs text-dim">Turn {view.turnNumber}</span>
+    </span>
   );
 }

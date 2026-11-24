@@ -1,22 +1,26 @@
 import {
-  MALWARE,
-  ARCOLOGY,
   ALLOY,
-  HABITAT,
-  FUSION_CELL,
-  ORE,
+  ARCOLOGY,
   BIODOME,
+  FUSION_CELL,
+  HABITAT,
+  MALWARE,
+  ORE,
   getCard,
   type CardId,
   type PlayerView,
 } from "@/engine";
-import { Card, type CardProps } from "./Card";
+import { Cost } from "./Card";
+import { CardIcon } from "./CardIcon";
 
-const BASIC_ROW: CardId[] = [ORE, ALLOY, FUSION_CELL, HABITAT, BIODOME, ARCOLOGY, MALWARE];
+const BASICS: CardId[] = [ORE, ALLOY, FUSION_CELL, HABITAT, BIODOME, ARCOLOGY, MALWARE];
+/** Piles at or below this size show their count; above it the count is noise. */
+const LOW_PILE = 3;
 
 export interface SupplyDisplay {
-  state: NonNullable<CardProps["state"]>;
-  /** Out of reach right now: greyed out. */
+  /** Clicking it buys it (or picks it, during a gain decision). */
+  clickable: boolean;
+  /** Faded: you can't take it right now. */
   muted: boolean;
 }
 
@@ -24,76 +28,104 @@ interface SupplyProps {
   view: PlayerView;
   display: (id: CardId) => SupplyDisplay;
   onPick: (id: CardId) => void;
-  /** Shown on your turn to explain the highlights. */
-  legend: { coins: number; potentialCoins: number; buys: number } | null;
 }
 
-export function Supply({ view, display, onPick, legend }: SupplyProps) {
-  const kingdom = [...view.kingdom].sort(
+/**
+ * The supply as compact tiles: cost, name and a one-line effect, with the full
+ * rules text on hover. Nothing is highlighted by default; what you can't
+ * afford is faded instead, and the accent only appears on hover.
+ */
+export function Supply({ view, display, onPick }: SupplyProps) {
+  const projects = [...view.kingdom].sort(
     (a, b) => getCard(a).cost - getCard(b).cost || a.localeCompare(b),
   );
-
-  const render = (id: CardId) => {
-    const { state, muted } = display(id);
-    const clickable = state === "available" || state === "reachable" || state === "option";
-    return (
-      <Card
-        key={id}
-        id={id}
-        size="sm"
-        count={view.supply[id]}
-        state={state}
-        dimmed={view.supply[id] === 0 || muted}
-        muted={muted}
-        onClick={clickable ? () => onPick(id) : undefined}
-      />
-    );
-  };
+  const tile = (id: CardId) => (
+    <SupplyTile
+      key={id}
+      id={id}
+      left={view.supply[id] ?? 0}
+      {...display(id)}
+      onPick={() => onPick(id)}
+    />
+  );
 
   return (
-    <section aria-label="Supply" className="panel flex flex-col gap-4 p-3 sm:p-4">
-      {legend && <SupplyLegend {...legend} />}
-      <div className="flex flex-wrap gap-3">{BASIC_ROW.map(render)}</div>
-      <div className="flex flex-wrap gap-3">{kingdom.map(render)}</div>
+    <section aria-label="Supply" className="flex flex-col gap-4">
+      <Group title="Basics">{BASICS.map(tile)}</Group>
+      <Group title="Projects">{projects.map(tile)}</Group>
     </section>
   );
 }
 
-function SupplyLegend({
-  coins,
-  potentialCoins,
-  buys,
-}: {
-  coins: number;
-  potentialCoins: number;
-  buys: number;
-}) {
-  if (buys === 0) {
-    return <p className="hud-label">No buys left this turn</p>;
-  }
+function Group({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-dim">
-      <span className="text-base font-semibold tracking-wide text-ink">
-        {coins} credit{coins === 1 ? "" : "s"} to spend
-        {potentialCoins > coins && (
-          <span className="text-sm font-medium text-dim">
-            {" "}
-            ({potentialCoins} with all resources)
-          </span>
-        )}
-      </span>
-      <span className="flex items-center gap-1.5">
-        <span className="inline-block size-3 rounded-sm ring-2 ring-accent" /> Affordable now
-      </span>
-      {potentialCoins > coins && (
+    <div className="flex flex-col gap-2">
+      <h2 className="hud-label">{title}</h2>
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] gap-2 sm:grid-cols-[repeat(auto-fill,minmax(12.5rem,1fr))]">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function SupplyTile({
+  id,
+  left,
+  clickable,
+  muted,
+  onPick,
+}: {
+  id: CardId;
+  left: number;
+  clickable: boolean;
+  muted: boolean;
+  onPick: () => void;
+}) {
+  const card = getCard(id);
+  const empty = left === 0;
+  // The game ends when the Arcology pile runs out, so that count always matters.
+  const showLeft = id === ARCOLOGY || left <= LOW_PILE;
+  const summary = card.text.replace(/\n/g, " · ");
+
+  const body = (
+    <>
+      <Cost value={card.cost} size="lg" />
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="flex items-center gap-1.5">
-          <span className="inline-block size-3 rounded-sm outline-2 outline-dashed outline-accent/70" />{" "}
-          After playing resources
+          <CardIcon id={id} />
+          <span className="text-sm leading-tight font-semibold text-ink">{card.name}</span>
+        </span>
+        <span className="line-clamp-2 text-xs leading-snug text-dim">{summary}</span>
+      </span>
+      {showLeft && (
+        <span
+          className={`shrink-0 self-start font-mono text-[11px] ${left <= LOW_PILE ? "text-danger" : "text-dim"}`}
+        >
+          {empty ? "empty" : `${left} left`}
         </span>
       )}
-      <span className="flex items-center gap-1.5">
-        <span className="inline-block size-3 rounded-sm bg-faint opacity-40" /> Too expensive
-      </span>
+    </>
+  );
+
+  const className = [
+    "flex w-full items-start gap-2.5 rounded-md border border-line bg-raise p-2 text-left transition",
+    clickable ? "cursor-pointer hover:border-accent hover:bg-panel" : "cursor-default",
+    muted || empty ? "opacity-35" : "",
+  ].join(" ");
+
+  return clickable && !empty ? (
+    <button
+      type="button"
+      className={className}
+      onClick={onPick}
+      title={card.text}
+      aria-label={`${card.name}, costs ${card.cost}${showLeft ? `, ${left} left` : ""}`}
+    >
+      {body}
+    </button>
+  ) : (
+    <div className={className} title={card.text}>
+      {body}
     </div>
   );
 }

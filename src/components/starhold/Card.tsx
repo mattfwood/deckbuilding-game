@@ -1,18 +1,5 @@
 import { getCard, type CardId, type CardType } from "@/engine";
-
-/**
- * Cards are neutral; a thin top stripe marks the category, using only the
- * palette's two colors plus white:
- *   resource = accent, victory = white, hazard/attack = danger, other actions = none.
- */
-const STRIPE: Record<CardType, string> = {
-  treasure: "bg-accent",
-  victory: "bg-ink",
-  curse: "bg-danger",
-  attack: "bg-danger",
-  reaction: "bg-transparent",
-  action: "bg-transparent",
-};
+import { CardIcon } from "./CardIcon";
 
 /** How each type reads on a card. Internal names stay generic; these fit the colony theme. */
 const TYPE_LABELS: Record<CardType, string> = {
@@ -24,78 +11,51 @@ const TYPE_LABELS: Record<CardType, string> = {
   reaction: "reaction",
 };
 
-/** The type that decides a card's stripe, most specific first. */
-function stripeFor(id: CardId): string {
-  const types = getCard(id).types;
-  const order: CardType[] = ["curse", "attack", "victory", "treasure", "reaction", "action"];
-  return STRIPE[order.find((t) => types.includes(t)) ?? "action"];
-}
-
 export interface CardProps {
   id: CardId;
-  /** Pile size, for supply cards. */
+  /** How many copies, e.g. in the card viewer. */
   count?: number;
   size?: "sm" | "md";
-  /** Visual state: playable/buyable, chosen in a selection, or a decision option. */
-  state?: "idle" | "available" | "reachable" | "selected" | "option";
-  dimmed?: boolean;
-  /** Also drain the color, for cards that are out of reach. */
+  /**
+   * idle: just shown. playable: you can click it (no standing highlight, only
+   * on hover, so a hand full of playable cards stays calm). selected: chosen in
+   * a hand selection.
+   */
+  state?: "idle" | "playable" | "selected";
+  /** Faded: can't be used right now. */
   muted?: boolean;
   onClick?: () => void;
   title?: string;
 }
 
-/** Accent means "you can act on this"; white marks your own selection. */
-const STATE_RING = {
+const STATE_STYLE = {
   idle: "",
-  available: "ring-2 ring-accent hover:-translate-y-0.5 cursor-pointer",
-  reachable:
-    "outline-1 outline-dashed outline-offset-2 outline-accent/70 hover:-translate-y-0.5 cursor-pointer",
-  selected: "ring-2 ring-ink -translate-y-2",
-  option: "ring-1 ring-accent/70 hover:-translate-y-0.5 cursor-pointer",
+  playable: "cursor-pointer hover:-translate-y-1 hover:border-accent",
+  selected: "-translate-y-1.5 border-ink ring-1 ring-ink",
 };
 
-export function Card({
-  id,
-  count,
-  size = "md",
-  state = "idle",
-  dimmed,
-  muted,
-  onClick,
-  title,
-}: CardProps) {
+export function Card({ id, count, size = "md", state = "idle", muted, onClick, title }: CardProps) {
   const card = getCard(id);
-  const sizing = size === "sm" ? "w-28 min-h-32 text-[11px]" : "w-32 min-h-36 text-xs";
+  const sizing = size === "sm" ? "w-28 min-h-28 text-[11px]" : "w-32 min-h-32 text-xs";
   const className = [
-    "relative flex flex-col rounded-md border border-line bg-raise text-left transition",
+    "relative flex shrink-0 flex-col gap-1 rounded-md border border-line bg-raise p-2 text-left transition",
     sizing,
-    STATE_RING[state],
-    dimmed ? "opacity-40" : "",
-    muted ? "grayscale" : "",
+    STATE_STYLE[state],
+    muted ? "opacity-40" : "",
   ].join(" ");
 
   const body = (
     <>
-      <span aria-hidden className={`h-0.5 rounded-t-md ${stripeFor(id)}`} />
-      <div className="flex flex-1 flex-col gap-1 p-2">
-        <div className="flex items-start justify-between gap-1">
-          <span className="text-[12px] leading-tight font-semibold text-ink">{card.name}</span>
-          <span
-            className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded border border-line px-1 font-mono text-[11px] text-ink"
-            aria-label={`Cost ${card.cost}`}
-          >
-            {card.cost}
-          </span>
-        </div>
-        <span className="flex items-baseline justify-between gap-1 text-[10px] text-faint">
-          <span className="tracking-[0.12em] uppercase">
-            {card.types.map((t) => TYPE_LABELS[t]).join(" · ")}
-          </span>
-          {count !== undefined && <span className="font-mono">×{count}</span>}
-        </span>
-        <p className="mt-1 leading-snug whitespace-pre-line text-dim">{card.text}</p>
+      <div className="flex items-start justify-between gap-1.5">
+        <span className="text-[13px] leading-tight font-semibold text-ink">{card.name}</span>
+        <Cost value={card.cost} />
       </div>
+      <span className="flex items-center gap-1 text-[11px] text-dim">
+        <CardIcon id={id} className="size-3" />
+        <span className="capitalize">{card.types.map((t) => TYPE_LABELS[t]).join(" · ")}</span>
+        {count !== undefined && <span className="ml-auto font-mono text-ink">×{count}</span>}
+      </span>
+      <p className="mt-0.5 leading-snug whitespace-pre-line text-dim">{card.text}</p>
     </>
   );
 
@@ -106,7 +66,7 @@ export function Card({
         className={className}
         onClick={onClick}
         title={title}
-        aria-label={`${card.name}${count !== undefined ? `, ${count} left` : ""}`}
+        aria-label={card.name}
         aria-pressed={state === "selected" ? true : undefined}
       >
         {body}
@@ -117,5 +77,18 @@ export function Card({
     <div className={className} title={title}>
       {body}
     </div>
+  );
+}
+
+/** A card's cost: the most important number when buying, so it's the boldest mark on the card. */
+export function Cost({ value, size = "sm" }: { value: number; size?: "sm" | "lg" }) {
+  const sizing = size === "lg" ? "size-7 text-sm" : "h-5 min-w-5 px-1 text-[12px]";
+  return (
+    <span
+      className={`flex shrink-0 items-center justify-center rounded bg-ink font-mono font-bold text-void ${sizing}`}
+      aria-label={`Cost ${value}`}
+    >
+      {value}
+    </span>
   );
 }
