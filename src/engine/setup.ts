@@ -1,12 +1,12 @@
 import {
-  BLIGHT,
-  CAPITAL,
-  CROWN,
-  FARM,
-  INGOT,
+  MALWARE,
+  ARCOLOGY,
+  ALLOY,
+  HABITAT,
+  FUSION_CELL,
   KINGDOM_CARD_IDS,
-  PENNY,
-  TOWN,
+  ORE,
+  BIODOME,
   getCard,
 } from "./cards";
 import { EngineError } from "./errors";
@@ -27,7 +27,7 @@ export interface CreateGameOptions {
 }
 
 export function startingDeck(): CardId[] {
-  return [...Array(7).fill(PENNY), ...Array(3).fill(FARM)];
+  return [...Array(7).fill(ORE), ...Array(3).fill(HABITAT)];
 }
 
 export function createGame({
@@ -37,7 +37,7 @@ export function createGame({
 }: CreateGameOptions): GameState {
   const n = players.length;
   if (n < MIN_PLAYERS || n > MAX_PLAYERS) {
-    throw new EngineError(`Realm needs ${MIN_PLAYERS}-${MAX_PLAYERS} players.`);
+    throw new EngineError(`Starhold needs ${MIN_PLAYERS}-${MAX_PLAYERS} players.`);
   }
   if (new Set(kingdom).size !== kingdom.length) {
     throw new EngineError("Kingdom cards must be unique.");
@@ -48,13 +48,13 @@ export function createGame({
 
   const victoryPile = n <= 2 ? 8 : 12;
   const supply: Record<CardId, number> = {
-    [PENNY]: 60 - 7 * n,
-    [CROWN]: 40,
-    [INGOT]: 30,
-    [FARM]: victoryPile,
-    [TOWN]: victoryPile,
-    [CAPITAL]: victoryPile,
-    [BLIGHT]: 10 * Math.max(n - 1, 1),
+    [ORE]: 60 - 7 * n,
+    [ALLOY]: 40,
+    [FUSION_CELL]: 30,
+    [HABITAT]: victoryPile,
+    [BIODOME]: victoryPile,
+    [ARCOLOGY]: victoryPile,
+    [MALWARE]: 10 * Math.max(n - 1, 1),
   };
   for (const id of kingdom) {
     supply[id] = getCard(id).types.includes("victory") ? victoryPile : KINGDOM_PILE_SIZE;

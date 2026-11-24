@@ -1,11 +1,11 @@
-# Realm: Project Plan
+# Starhold: Project Plan
 
-**Realm** is an original web-based deck-building card game: players start with
+**Starhold** is an original web-based deck-building game about founding a colony on a new planet: players start with
 a small deck, buy cards from a shared market, and play through action → buy →
 cleanup turns, scoring victory points at the end. Name, theme, card names, card
 text and art are all our own.
 
-> Card names are placeholders: rename them in `src/engine/cards/`.
+> Card definitions live in `src/engine/cards/`.
 
 Stack: Next.js (App Router) + React + TypeScript, Vitest, Prisma + Postgres.
 
@@ -65,29 +65,30 @@ prisma/
 - [x] Unit tests, including simulated full games that check card conservation
 - [x] `getPlayerView` (hides seed, RNG, other hands, deck order)
 
-#### Placeholder card set
+#### Card set (space colony theme)
 
-| Card          | Cost | Type            | Effect                                              |
-| ------------- | ---- | --------------- | --------------------------------------------------- |
-| Penny         | 0    | Treasure        | 1 Coin                                              |
-| Crown         | 3    | Treasure        | 2 Coins                                             |
-| Ingot         | 6    | Treasure        | 3 Coins                                             |
-| Farm          | 2    | Victory         | 1 VP                                                |
-| Town          | 5    | Victory         | 3 VP                                                |
-| Capital       | 8    | Victory         | 6 VP (empty pile ends the game)                     |
-| Blight        | 0    | Curse           | -1 VP                                               |
-| Campfire      | 2    | Action          | +2 Actions, +1 Coin                                 |
-| Shrine        | 2    | Action          | +1 Coin, trash up to 2 cards                        |
-| Palisade      | 3    | Action–Reaction | +1 Card, +1 Action; reveal to block an attack       |
-| Scribe        | 4    | Action          | +3 Cards, discard a card                            |
-| Builder       | 4    | Action          | +1 Action, gain a card costing up to 4              |
-| Raider        | 4    | Action–Attack   | +1 Card, +1 Coin; each other player discards a card |
-| Tax Collector | 5    | Action          | +1 Buy, +3 Coins                                    |
-| Caravan       | 5    | Action          | +2 Cards, +1 Action, +1 Buy                         |
-| Alchemist     | 5    | Action          | Trash a card, gain one costing up to 3 more         |
-| Warlock       | 5    | Action–Attack   | +1 Card, +1 Action; each other player gains Blight  |
+| Card             | Cost | Type            | Effect                                              |
+| ---------------- | ---- | --------------- | --------------------------------------------------- |
+| Ore              | 0    | Resource        | 1 Credit                                            |
+| Alloy            | 3    | Resource        | 2 Credits                                           |
+| Fusion Cell      | 6    | Resource        | 3 Credits                                           |
+| Habitat          | 2    | Victory         | 1 VP                                                |
+| Biodome          | 5    | Victory         | 3 VP                                                |
+| Arcology         | 8    | Victory         | 6 VP (empty pile ends the game)                     |
+| Malware          | 0    | Hazard          | -1 VP                                               |
+| Overclock        | 2    | Action          | +2 Actions, +1 Credit                               |
+| Reclaimer        | 2    | Action          | +1 Credit, trash up to 2 cards                      |
+| Perimeter Shield | 3    | Action–Reaction | +1 Card, +1 Action; reveal to block an attack       |
+| Mining Rig       | 3    | Action          | +1 Buy, +3 Credits                                  |
+| Supply Drop      | 3    | Action          | +2 Cards, +1 Action, +1 Buy                         |
+| Survey Drone     | 4    | Action          | +3 Cards, discard a card                            |
+| Fabricator       | 4    | Action          | +1 Action, gain a card costing up to 4              |
+| EMP Burst        | 4    | Action–Attack   | +1 Card, +1 Credit; each other player discards 1    |
+| Matter Converter | 4    | Action          | Trash a card, gain one costing up to 3 more         |
+| Infiltrator      | 4    | Action–Attack   | +1 Card, +1 Action; each other player gains Malware |
 
-Starting deck: 7 Penny + 3 Farm. Ties go to the player with fewer turns.
+Starting deck: 7 Ore + 3 Habitat. Ties go to the player with fewer turns.
+Internally "Resource" is the `treasure` type and "Hazard" is `curse`.
 
 ### Phase 2: Single-player UI
 
@@ -172,8 +173,7 @@ Smallest working version first, in this order. Each step is playable on its own.
 - [x] `vercel-build` runs `prisma migrate deploy` before `next build`
 - [x] `/api/health`, styled error and not-found pages
 - [x] Basic in-memory rate limits on creating, joining and moving
-- [ ] Original card names and text before anything is public: the kingdom cards
-      currently use Dominion's names as placeholders
+- [x] Original theme and card names (Starhold, space colony)
 - [ ] Push to GitHub; Vercel project + Neon via the Vercel Marketplace; first deploy
 - [ ] Optional: Vercel Firewall rate-limit rule
 

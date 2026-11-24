@@ -52,22 +52,25 @@ export function CardViewer({ view, tab, onTab, onClose }: CardViewerProps) {
 
   return (
     <div
-      className="fixed inset-0 z-20 flex items-end justify-center bg-black/50 sm:items-center sm:p-4"
+      className="fixed inset-0 z-20 flex items-end justify-center bg-black/70 backdrop-blur-[2px] sm:items-center sm:p-4"
       onClick={onClose}
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="card-viewer-title"
-        className="flex max-h-[85vh] w-full max-w-3xl flex-col gap-4 rounded-t-xl bg-white p-4 shadow-xl sm:rounded-xl sm:p-6 dark:bg-stone-900"
+        className="flex max-h-[85vh] w-full max-w-3xl flex-col gap-4 rounded-t-xl border border-cyan-300/30 bg-hull/95 p-4 shadow-[0_0_40px_rgb(34_211_238/0.15)] backdrop-blur sm:rounded-xl sm:p-6"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between gap-3">
-          <h2 id="card-viewer-title" className="text-lg font-bold">
+          <h2
+            id="card-viewer-title"
+            className="font-hud text-lg font-bold tracking-wide text-cyan-50 uppercase"
+          >
             Your cards
           </h2>
           <button
-            className="rounded-md px-2 py-1 text-sm text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-800"
+            className="rounded-md px-2 py-1 text-sm text-dim hover:bg-slate-800/70"
             onClick={onClose}
             aria-label="Close"
           >
@@ -75,16 +78,16 @@ export function CardViewer({ view, tab, onTab, onClose }: CardViewerProps) {
           </button>
         </div>
 
-        <div role="tablist" className="flex gap-1 border-b border-stone-200 dark:border-stone-700">
+        <div role="tablist" className="flex gap-1 border-b border-cyan-300/20">
           {TABS.map((t) => (
             <button
               key={t.id}
               role="tab"
               aria-selected={tab === t.id}
-              className={`-mb-px border-b-2 px-3 py-1.5 text-sm ${
+              className={`-mb-px border-b-2 px-3 py-1.5 font-hud text-sm font-semibold tracking-wide uppercase ${
                 tab === t.id
-                  ? "border-stone-900 font-semibold dark:border-stone-100"
-                  : "border-transparent text-stone-500 hover:text-stone-800 dark:hover:text-stone-200"
+                  ? "border-signal text-cyan-100"
+                  : "border-transparent text-dim hover:text-ink"
               }`}
               onClick={() => onTab(t.id)}
             >
@@ -93,8 +96,9 @@ export function CardViewer({ view, tab, onTab, onClose }: CardViewerProps) {
           ))}
         </div>
 
-        <p className="text-sm text-stone-600 dark:text-stone-400">
-          {cards.length} card{cards.length === 1 ? "" : "s"} · {coins} coins in treasure · {vp} VP
+        <p className="text-sm text-dim">
+          {cards.length} card{cards.length === 1 ? "" : "s"} · {coins} credits in resources · {vp}{" "}
+          VP
           {tab === "deck" && " · shown sorted, not in draw order"}
           {tab === "all" && " · includes your hand and cards in play"}
         </p>
@@ -103,7 +107,7 @@ export function CardViewer({ view, tab, onTab, onClose }: CardViewerProps) {
           {groups.map(([id, count]) => (
             <Card key={id} id={id} size="sm" count={count} />
           ))}
-          {groups.length === 0 && <p className="text-sm text-stone-500">Empty.</p>}
+          {groups.length === 0 && <p className="text-sm text-dim">Empty.</p>}
         </div>
       </div>
     </div>

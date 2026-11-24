@@ -9,27 +9,23 @@ export function Opponents({ view, actor }: { view: PlayerView; actor: number | n
         return (
           <div
             key={p.id}
-            className={`min-w-48 rounded-lg border px-3 py-2 text-sm ${
-              isCurrent
-                ? "border-amber-500 bg-amber-50 dark:bg-amber-950/30"
-                : "border-stone-200 dark:border-stone-700"
+            className={`panel min-w-48 px-3 py-2 text-sm ${
+              isCurrent ? "border-cyan-300/60 shadow-[0_0_16px_rgb(34_211_238/0.25)]" : ""
             }`}
           >
-            <div className="flex items-center justify-between gap-2 font-semibold">
+            <div className="flex items-center justify-between gap-2 font-hud font-semibold tracking-wide">
               <span>{p.name}</span>
               {actor === seat && (
-                <span className="animate-pulse text-xs font-normal text-amber-700 dark:text-amber-400">
+                <span className="animate-pulse font-sans text-xs font-normal text-cyan-300">
                   thinking…
                 </span>
               )}
             </div>
-            <div className="text-xs text-stone-600 dark:text-stone-400">
+            <div className="font-mono text-xs text-dim">
               Hand {p.handCount} · Deck {p.deckCount} · Discard {p.discardCount}
             </div>
             {p.inPlay.length > 0 && (
-              <div className="mt-1 text-xs text-stone-700 dark:text-stone-300">
-                In play: {cardNames(p.inPlay)}
-              </div>
+              <div className="mt-1 text-xs text-slate-300">In play: {cardNames(p.inPlay)}</div>
             )}
           </div>
         );

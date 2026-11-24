@@ -9,6 +9,7 @@ import { GameLog } from "./GameLog";
 import { GameOver } from "./GameOver";
 import { Opponents } from "./Opponents";
 import { PlayerArea } from "./PlayerArea";
+import { Wordmark } from "./Wordmark";
 import { Supply, type SupplyDisplay } from "./Supply";
 
 interface BoardProps {
@@ -83,13 +84,10 @@ export function Board({ view, error, act, onDismissError }: BoardProps) {
       <main className="flex min-w-0 flex-1 flex-col gap-6">
         <header className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Realm</h1>
-            <p className="text-sm text-stone-600 dark:text-stone-400">{turnLabel}</p>
+            <Wordmark as="h1" />
+            <p className="hud-label mt-1 text-cyan-200/80">{turnLabel}</p>
           </div>
-          <Link
-            href="/"
-            className="rounded-md border border-stone-300 px-3 py-1.5 text-sm hover:bg-stone-100 dark:border-stone-600 dark:hover:bg-stone-800"
-          >
+          <Link href="/" className="btn-secondary">
             All games
           </Link>
         </header>
@@ -103,8 +101,8 @@ export function Board({ view, error, act, onDismissError }: BoardProps) {
           legend={myTurn ? { coins: view.coins, potentialCoins, buys: view.buys } : null}
         />
 
-        <section aria-label="In play" className="flex min-h-16 flex-col gap-2">
-          <h2 className="text-sm font-semibold text-stone-600 dark:text-stone-400">
+        <section aria-label="In play" className="panel flex min-h-24 flex-col gap-2 p-3">
+          <h2 className="hud-label">
             In play{view.currentPlayer !== you ? ` (${current.name})` : ""}
           </h2>
           <div className="flex flex-wrap gap-2">
@@ -117,7 +115,7 @@ export function Board({ view, error, act, onDismissError }: BoardProps) {
         {error && (
           <div
             role="alert"
-            className="flex items-center justify-between gap-3 rounded-md border border-rose-400 bg-rose-50 px-3 py-2 text-sm text-rose-800 dark:bg-rose-950/40 dark:text-rose-200"
+            className="flex items-center justify-between gap-3 rounded-md border border-rose-500/60 bg-rose-950/70 px-3 py-2 text-sm text-rose-100"
           >
             {error}
             <button className="text-xs underline" onClick={onDismissError}>

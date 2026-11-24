@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CAPITAL, CROWN, FARM, INGOT, PENNY, TOWN, getCard } from "./cards";
+import { ARCOLOGY, ALLOY, HABITAT, FUSION_CELL, ORE, BIODOME, getCard } from "./cards";
 import { EngineError } from "./errors";
 import { applyAction } from "./reducer";
 import { computeResult, victoryPoints } from "./scoring";
@@ -12,16 +12,16 @@ function endTurn(s: GameState): GameState {
 }
 
 describe("game end", () => {
-  it("ends when the Capital pile is empty, after the turn", () => {
+  it("ends when the Arcology pile is empty, after the turn", () => {
     let s = withCards(newGame(), 0, {
-      hand: [INGOT, INGOT, CROWN, PENNY, PENNY],
-      deck: [FARM, FARM, FARM, PENNY, PENNY],
+      hand: [FUSION_CELL, FUSION_CELL, ALLOY, ORE, ORE],
+      deck: [HABITAT, HABITAT, HABITAT, ORE, ORE],
     });
-    s = { ...s, supply: { ...s.supply, [CAPITAL]: 1 } };
+    s = { ...s, supply: { ...s.supply, [ARCOLOGY]: 1 } };
     s = run(
       s,
       { type: "playAllTreasures", player: 0 },
-      { type: "buy", player: 0, cardId: CAPITAL },
+      { type: "buy", player: 0, cardId: ARCOLOGY },
     );
     expect(s.phase).toBe("buy");
     s = run(s, { type: "endPhase", player: 0 });
@@ -32,10 +32,10 @@ describe("game end", () => {
 
   it("ends when any three piles are empty", () => {
     let s = newGame();
-    s = { ...s, supply: { ...s.supply, harbinger: 0, chapel: 0 } };
+    s = { ...s, supply: { ...s.supply, "survey-drone": 0, reclaimer: 0 } };
     s = endTurn(s);
     expect(s.phase).toBe("action");
-    s = { ...s, supply: { ...s.supply, workshop: 0 } };
+    s = { ...s, supply: { ...s.supply, "supply-drop": 0 } };
     s = endTurn(s);
     expect(s.phase).toBe("gameOver");
   });
@@ -48,10 +48,10 @@ describe("game end", () => {
     expect(computeResult(s).winners).toEqual([1]);
   });
 
-  it("counts VP from every zone, including Blights", () => {
+  it("counts VP from every zone, including Malware", () => {
     const s = newGame();
-    s.players[0].inPlay = [TOWN];
-    s.players[0].discard = ["blight"];
+    s.players[0].inPlay = [BIODOME];
+    s.players[0].discard = ["malware"];
     expect(victoryPoints(s.players[0])).toBe(3 + 3 - 1);
   });
 });
@@ -61,8 +61,8 @@ describe("full simulated game", () => {
   function botTurn(s: GameState): GameState {
     const p = s.currentPlayer;
     s = run(s, { type: "playAllTreasures", player: p });
-    const target = [CAPITAL, INGOT, TOWN, CROWN].find(
-      (id) => getCard(id).cost <= s.coins && s.supply[id] > 0 && !(id === TOWN && s.coins >= 6),
+    const target = [ARCOLOGY, FUSION_CELL, BIODOME, ALLOY].find(
+      (id) => getCard(id).cost <= s.coins && s.supply[id] > 0 && !(id === BIODOME && s.coins >= 6),
     );
     if (target) s = run(s, { type: "buy", player: p, cardId: target });
     if (s.phase !== "buy") s = run(s, { type: "endPhase", player: p });

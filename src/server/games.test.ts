@@ -51,6 +51,25 @@ describe.skipIf(!url)("game service (Postgres)", () => {
     return snap;
   }
 
+  /** End my turn, or give the simplest answer to a decision I owe. */
+  function myMinimalMove(snap: PlaySnapshot): Action | Action[] {
+    const d = snap.view.pendingDecision;
+    if (!d) return endTurn;
+    const resolve = (response: Extract<Action, { type: "resolveDecision" }>["response"]) => ({
+      type: "resolveDecision" as const,
+      player: 0,
+      response,
+    });
+    switch (d.kind) {
+      case "selectFromHand":
+        return resolve({ kind: "selectFromHand", cards: snap.view.hand.slice(0, d.min) });
+      case "selectFromSupply":
+        return resolve({ kind: "selectFromSupply", cardId: d.options[0] });
+      case "revealReaction":
+        return resolve({ kind: "revealReaction", reveal: false });
+    }
+  }
+
   const endTurn: Action[] = [
     { type: "endPhase", player: 0 },
     { type: "endPhase", player: 0 },
@@ -108,11 +127,11 @@ describe.skipIf(!url)("game service (Postgres)", () => {
     const attempts: unknown[] = [
       { type: "endPhase", player: 1 }, // not my seat
       { type: "buy", player: 0, cardId: "not-a-card" },
-      { type: "buy", player: 0, cardId: "capital" }, // can't afford
+      { type: "buy", player: 0, cardId: "arcology" }, // can't afford
       { type: "launchMissiles", player: 0 },
       [
         { type: "endPhase", player: 0 },
-        { type: "buy", player: 0, cardId: "capital" },
+        { type: "buy", player: 0, cardId: "arcology" },
       ], // all or nothing
       [],
       "endPhase",
@@ -191,8 +210,9 @@ describe.skipIf(!url)("game service (Postgres)", () => {
     while (snap.view.phase !== "gameOver") {
       snap = await botsUntilMe(snap);
       if (snap.view.phase === "gameOver") break;
-      // I never buy anything, so the bots end the game.
-      snap = await svc.act(snap.gameId, ME, endTurn);
+      // I never buy anything, so the bots end the game. Their attacks may
+      // still ask me to choose: answer with the simplest legal response.
+      snap = await svc.act(snap.gameId, ME, myMinimalMove(snap));
     }
     expect(snap.view.result).not.toBeNull();
     const game = await db.game.findUniqueOrThrow({ where: { id: snap.gameId } });

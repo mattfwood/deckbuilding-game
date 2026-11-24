@@ -1,18 +1,18 @@
 import {
-  BLIGHT,
-  CAPITAL,
-  CROWN,
-  FARM,
-  INGOT,
-  PENNY,
-  TOWN,
+  MALWARE,
+  ARCOLOGY,
+  ALLOY,
+  HABITAT,
+  FUSION_CELL,
+  ORE,
+  BIODOME,
   getCard,
   type CardId,
   type PlayerView,
 } from "@/engine";
 import { Card, type CardProps } from "./Card";
 
-const BASIC_ROW: CardId[] = [PENNY, CROWN, INGOT, FARM, TOWN, CAPITAL, BLIGHT];
+const BASIC_ROW: CardId[] = [ORE, ALLOY, FUSION_CELL, HABITAT, BIODOME, ARCOLOGY, MALWARE];
 
 export interface SupplyDisplay {
   state: NonNullable<CardProps["state"]>;
@@ -51,7 +51,7 @@ export function Supply({ view, display, onPick, legend }: SupplyProps) {
   };
 
   return (
-    <section aria-label="Supply" className="flex flex-col gap-4">
+    <section aria-label="Supply" className="panel flex flex-col gap-4 p-3 sm:p-4">
       {legend && <SupplyLegend {...legend} />}
       <div className="flex flex-wrap gap-3">{BASIC_ROW.map(render)}</div>
       <div className="flex flex-wrap gap-3">{kingdom.map(render)}</div>
@@ -69,27 +69,30 @@ function SupplyLegend({
   buys: number;
 }) {
   if (buys === 0) {
-    return <p className="text-sm text-stone-500">No buys left this turn.</p>;
+    return <p className="hud-label">No buys left this turn</p>;
   }
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-stone-600 dark:text-stone-400">
-      <span className="text-sm font-semibold text-stone-900 dark:text-stone-100">
-        {coins} coin{coins === 1 ? "" : "s"} to spend
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-dim">
+      <span className="font-hud text-base font-semibold tracking-wide text-amber-200">
+        {coins} credit{coins === 1 ? "" : "s"} to spend
         {potentialCoins > coins && (
-          <span className="font-normal text-stone-500"> ({potentialCoins} with all treasures)</span>
+          <span className="text-sm font-medium text-dim">
+            {" "}
+            ({potentialCoins} with all resources)
+          </span>
         )}
       </span>
       <span className="flex items-center gap-1.5">
-        <span className="inline-block size-3 rounded-sm ring-2 ring-amber-500" /> Affordable now
+        <span className="inline-block size-3 rounded-sm ring-2 ring-signal" /> Affordable now
       </span>
       {potentialCoins > coins && (
         <span className="flex items-center gap-1.5">
-          <span className="inline-block size-3 rounded-sm outline-2 outline-dashed outline-amber-500" />{" "}
-          After playing treasures
+          <span className="inline-block size-3 rounded-sm outline-2 outline-dashed outline-cyan-300/70" />{" "}
+          After playing resources
         </span>
       )}
       <span className="flex items-center gap-1.5">
-        <span className="inline-block size-3 rounded-sm bg-stone-400 opacity-40" /> Too expensive
+        <span className="inline-block size-3 rounded-sm bg-slate-500 opacity-40" /> Too expensive
       </span>
     </div>
   );

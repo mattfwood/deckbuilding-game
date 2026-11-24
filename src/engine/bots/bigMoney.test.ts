@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getActor } from "../actor";
-import { BLIGHT, FARM, PENNY } from "../cards";
+import { MALWARE, HABITAT, ORE } from "../cards";
 import { applyAction } from "../reducer";
 import { newGame, totalCards, withCards } from "../test-helpers";
 import type { GameState } from "../types";
@@ -32,22 +32,27 @@ describe("bigMoney bot", () => {
   it("buys kingdom cards, so attacks and decisions get exercised", () => {
     const end = playOut(newGame(3, "bot-f"));
     const messages = end.log.map((e) => e.message).join("\n");
-    expect(messages).toMatch(/plays (Moneylender|Vassal|Harbinger|Workshop)/);
+    expect(messages).toMatch(/plays (Infiltrator|EMP Burst|Survey Drone|Supply Drop)/);
   });
 
-  it("trashes junk with Chapel and keeps good cards", () => {
-    let s = withCards(newGame(), 0, { hand: ["chapel", BLIGHT, FARM, "ingot", "crown"] });
+  it("trashes junk with Reclaimer and keeps good cards", () => {
+    let s = withCards(newGame(), 0, {
+      hand: ["reclaimer", MALWARE, HABITAT, "fusion-cell", "alloy"],
+    });
     s = applyAction(s, chooseBotAction(s, 0));
     expect(s.pendingDecision).toMatchObject({ purpose: "trash" });
     s = applyAction(s, chooseBotAction(s, 0));
-    expect(s.trash).toEqual([BLIGHT, FARM]);
+    expect(s.trash).toEqual([MALWARE, HABITAT]);
   });
 
   it("discards its worst card", () => {
-    let s = withCards(newGame(), 0, { hand: ["harbinger", "ingot"], deck: [PENNY, FARM, "crown"] });
+    let s = withCards(newGame(), 0, {
+      hand: ["survey-drone", "fusion-cell"],
+      deck: [ORE, HABITAT, "alloy"],
+    });
     s = applyAction(s, chooseBotAction(s, 0));
     s = applyAction(s, chooseBotAction(s, 0));
-    expect(s.players[0].discard).toEqual([FARM]);
+    expect(s.players[0].discard).toEqual([HABITAT]);
   });
 
   it("refuses to act out of turn", () => {

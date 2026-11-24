@@ -1,6 +1,6 @@
-# Realm
+# Starhold
 
-A web-based deck-building card game. See [PLAN.md](PLAN.md) for the roadmap.
+A web-based deck-building game about founding a colony on a new planet. See [PLAN.md](PLAN.md) for the roadmap.
 
 ## Setup
 

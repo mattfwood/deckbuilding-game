@@ -10,18 +10,18 @@ export async function YourGames() {
 
   return (
     <section aria-labelledby="your-games" className="flex flex-col gap-2">
-      <h2 id="your-games" className="text-sm font-semibold text-stone-600 dark:text-stone-400">
+      <h2 id="your-games" className="hud-label">
         Your games
       </h2>
-      <ul className="flex flex-col divide-y divide-stone-200 rounded-md border border-stone-200 dark:divide-stone-700 dark:border-stone-700">
+      <ul className="panel flex flex-col divide-y divide-cyan-300/10">
         {games.map((g) => (
           <li key={g.id}>
             <Link
               href={`/game/${g.id}`}
-              className="flex items-center justify-between gap-3 px-3 py-2 text-sm hover:bg-stone-100 dark:hover:bg-stone-800"
+              className="flex items-center justify-between gap-3 px-3 py-2 text-sm hover:bg-slate-800/70"
             >
               <span>{g.opponents.length ? `vs ${g.opponents.join(", ")}` : "Just you so far"}</span>
-              <span className="text-xs text-stone-500">
+              <span className="text-xs text-dim">
                 {g.status === "finished"
                   ? "Finished"
                   : g.status === "lobby"

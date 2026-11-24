@@ -95,10 +95,10 @@ export function GameClient({ initial }: { initial: GameSnapshot }) {
   if (gone) {
     return (
       <main className="mx-auto flex max-w-md flex-col gap-4 px-4 py-12">
-        <h1 className="text-2xl font-bold">Game not found</h1>
-        <p className="text-stone-600 dark:text-stone-400">
-          It was cancelled, or you&apos;re no longer seated in it.
-        </p>
+        <h1 className="font-hud text-2xl font-bold tracking-wide text-cyan-50 uppercase">
+          Game not found
+        </h1>
+        <p className="text-dim">It was cancelled, or you&apos;re no longer seated in it.</p>
         <Link href="/" className="text-sm underline">
           Back to your games
         </Link>

@@ -1,6 +1,6 @@
 import { Suspense } from "react";
-import { NewGameForm } from "@/components/realm/NewGameForm";
-import { YourGames } from "@/components/realm/YourGames";
+import { NewGameForm } from "@/components/starhold/NewGameForm";
+import { YourGames } from "@/components/starhold/YourGames";
 
 export default function Home() {
   return (

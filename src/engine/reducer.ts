@@ -74,7 +74,7 @@ function buy(s: GameState, cardId: CardId): void {
   if (s.supply[cardId] <= 0) throw new EngineError(`The ${cardId} pile is empty.`);
   if (s.buys <= 0) throw new EngineError("You have no buys left.");
   const cost = getCard(cardId).cost;
-  if (cost > s.coins) throw new EngineError(`You need ${cost} coins; you have ${s.coins}.`);
+  if (cost > s.coins) throw new EngineError(`You need ${cost} credits; you have ${s.coins}.`);
   s.phase = "buy";
   s.coins -= cost;
   s.buys--;

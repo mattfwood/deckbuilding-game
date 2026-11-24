@@ -11,11 +11,10 @@ import {
   type GameResult,
 } from "@/app/actions";
 import type { LobbySnapshot } from "@/server/games";
+import { Wordmark } from "./Wordmark";
 
-const button =
-  "rounded-md px-3 py-1.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-40";
-const primary = `${button} bg-stone-900 text-white hover:bg-stone-700 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-300`;
-const secondary = `${button} border border-stone-300 hover:bg-stone-100 dark:border-stone-600 dark:hover:bg-stone-800`;
+const primary = "btn-primary";
+const secondary = "btn-secondary";
 
 // The page origin, read on the client only (the server render has no window).
 const noSubscribe = () => () => {};
@@ -65,19 +64,16 @@ export function Lobby({ snap, send, error, onDismissError }: LobbyProps) {
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 py-12">
       <header className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Realm</h1>
-          <p className="text-sm text-stone-600 dark:text-stone-400">Waiting for players</p>
+          <Wordmark as="h1" />
+          <p className="hud-label mt-1 text-cyan-200/80">Waiting for colonists</p>
         </div>
-        <Link
-          href="/"
-          className="rounded-md border border-stone-300 px-3 py-1.5 text-sm hover:bg-stone-100 dark:border-stone-600 dark:hover:bg-stone-800"
-        >
+        <Link href="/" className="btn-secondary">
           All games
         </Link>
       </header>
 
       <section aria-labelledby="invite" className="flex flex-col gap-2">
-        <h2 id="invite" className="text-sm font-semibold">
+        <h2 id="invite" className="hud-label">
           Invite link
         </h2>
         <div className="flex gap-2">
@@ -86,25 +82,25 @@ export function Lobby({ snap, send, error, onDismissError }: LobbyProps) {
             value={invite}
             aria-label="Invite link"
             onFocus={(e) => e.currentTarget.select()}
-            className="min-w-0 flex-1 rounded-md border border-stone-300 bg-transparent px-3 py-1.5 text-sm dark:border-stone-600"
+            className="field min-w-0 flex-1 py-1.5 text-sm"
           />
           <button className={secondary} onClick={copy}>
             {copied ? "Copied!" : "Copy"}
           </button>
         </div>
-        <p className="text-xs text-stone-500">Anyone with this link can take an open seat.</p>
+        <p className="text-xs text-dim">Anyone with this link can take an open seat.</p>
       </section>
 
       <section aria-labelledby="seats" className="flex flex-col gap-2">
-        <h2 id="seats" className="text-sm font-semibold">
+        <h2 id="seats" className="hud-label">
           Players ({snap.seats.length}/{snap.maxSeats})
         </h2>
-        <ul className="flex flex-col divide-y divide-stone-200 rounded-md border border-stone-200 dark:divide-stone-700 dark:border-stone-700">
+        <ul className="panel flex flex-col divide-y divide-cyan-300/10">
           {snap.seats.map((seat, i) => (
             <li key={i} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
-              <span>
+              <span className="font-hud font-semibold tracking-wide">
                 {seat.name}
-                <span className="ml-2 text-xs text-stone-500">
+                <span className="ml-2 text-xs text-dim">
                   {[i === 0 && "host", seat.kind === "bot" && "bot", i === you && "you"]
                     .filter(Boolean)
                     .join(" · ")}
@@ -112,7 +108,7 @@ export function Lobby({ snap, send, error, onDismissError }: LobbyProps) {
               </span>
               {isHost && i !== 0 && (
                 <button
-                  className="text-xs text-stone-500 underline hover:text-stone-900 dark:hover:text-stone-100"
+                  className="text-xs text-dim underline hover:text-ink"
                   onClick={() => send(() => removeSeatAction(gameId, i))}
                   aria-label={`Remove ${seat.name}`}
                 >
@@ -122,7 +118,7 @@ export function Lobby({ snap, send, error, onDismissError }: LobbyProps) {
             </li>
           ))}
           {Array.from({ length: snap.maxSeats - snap.seats.length }, (_, i) => (
-            <li key={`open-${i}`} className="px-3 py-2 text-sm text-stone-400">
+            <li key={`open-${i}`} className="px-3 py-2 text-sm text-faint">
               Open seat
             </li>
           ))}
@@ -132,7 +128,7 @@ export function Lobby({ snap, send, error, onDismissError }: LobbyProps) {
       {(error || leaveError) && (
         <div
           role="alert"
-          className="flex items-center justify-between gap-3 rounded-md border border-rose-400 bg-rose-50 px-3 py-2 text-sm text-rose-800 dark:bg-rose-950/40 dark:text-rose-200"
+          className="flex items-center justify-between gap-3 rounded-md border border-rose-500/60 bg-rose-950/70 px-3 py-2 text-sm text-rose-100"
         >
           {error ?? leaveError}
           <button
@@ -170,7 +166,7 @@ export function Lobby({ snap, send, error, onDismissError }: LobbyProps) {
           </>
         ) : (
           <>
-            <p className="self-center text-sm text-stone-500">
+            <p className="self-center text-sm text-dim">
               Waiting for {snap.seats[0]?.name} to start the game…
             </p>
             <button className={secondary} disabled={leaving} onClick={leave}>

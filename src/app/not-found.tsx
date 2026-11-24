@@ -1,4 +1,4 @@
-import { MessagePage } from "@/components/realm/MessagePage";
+import { MessagePage } from "@/components/starhold/MessagePage";
 
 export default function NotFound() {
   return (

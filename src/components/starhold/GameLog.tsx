@@ -14,17 +14,17 @@ export function GameLog({ log }: { log: LogEntry[] }) {
     <section
       ref={box}
       aria-label="Game log"
-      className="flex max-h-[70vh] flex-col overflow-y-auto rounded-lg border border-stone-200 p-3 text-xs dark:border-stone-700"
+      className="panel flex max-h-[70vh] flex-col overflow-y-auto p-3 text-xs"
     >
-      <h2 className="mb-2 text-sm font-semibold">Log</h2>
+      <h2 className="hud-label mb-2">Colony log</h2>
       <ol className="flex flex-col gap-0.5">
         {log.slice(-200).map((e, i) => (
           <li
             key={i}
             className={
               e.message.startsWith("Turn ")
-                ? "mt-2 font-semibold text-stone-900 dark:text-stone-100"
-                : "text-stone-600 dark:text-stone-400"
+                ? "mt-2 font-hud font-semibold tracking-wide text-cyan-200"
+                : "text-dim"
             }
           >
             {e.message}

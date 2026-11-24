@@ -24,16 +24,16 @@ describe("getPlayerView", () => {
   it("is a copy, not a reference into state", () => {
     const s = newGame();
     const view = getPlayerView(s, 0);
-    view.hand.push("ingot");
+    view.hand.push("fusion-cell");
     expect(s.players[0].hand).toHaveLength(5);
   });
 
   it("shows your own deck contents without revealing their order, plus your discard", () => {
     const s = newGame();
-    s.players[0].deck = ["ingot", "penny", "farm", "crown"];
-    s.players[0].discard = ["town", "penny"];
+    s.players[0].deck = ["fusion-cell", "ore", "habitat", "alloy"];
+    s.players[0].discard = ["biodome", "ore"];
     const view = getPlayerView(s, 0);
-    expect(view.deck).toEqual(["crown", "farm", "ingot", "penny"]);
-    expect(view.discard).toEqual(["town", "penny"]);
+    expect(view.deck).toEqual(["alloy", "fusion-cell", "habitat", "ore"]);
+    expect(view.discard).toEqual(["biodome", "ore"]);
   });
 });

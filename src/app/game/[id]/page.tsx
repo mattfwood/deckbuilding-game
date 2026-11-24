@@ -1,12 +1,12 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { GameClient } from "@/components/realm/GameClient";
+import { GameClient } from "@/components/starhold/GameClient";
 import { GameNotFoundError, type GameSnapshot } from "@/server/games";
 import { gameService, getGuestId } from "@/server/guest";
 
 export default function GamePage({ params }: { params: Promise<{ id: string }> }) {
   return (
-    <Suspense fallback={<p className="mx-auto px-4 py-12 text-sm text-stone-500">Loading game…</p>}>
+    <Suspense fallback={<p className="mx-auto px-4 py-12 text-sm text-dim">Loading game…</p>}>
       <Game params={params} />
     </Suspense>
   );

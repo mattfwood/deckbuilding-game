@@ -1,14 +1,14 @@
 import type { CardDef } from "../types";
-import { BLIGHT } from "./basic";
+import { MALWARE } from "./basic";
 
-/** Placeholder kingdom cards for Realm. Rename / rebalance freely. */
+/** Kingdom cards for Starhold: tools and threats for a young colony on a new world. */
 // export const KINGDOM_CARDS: CardDef[] = [
 //   {
 //     id: "campfire",
 //     name: "Campfire",
 //     cost: 2,
 //     types: ["action"],
-//     text: "+2 Actions\n+1 Coin",
+//     text: "+2 Actions\n+1 Credit",
 //     onPlay: () => [
 //       { kind: "addActions", amount: 2 },
 //       { kind: "addCoins", amount: 1 },
@@ -19,7 +19,7 @@ import { BLIGHT } from "./basic";
 //     name: "Shrine",
 //     cost: 2,
 //     types: ["action"],
-//     text: "+1 Coin\nTrash up to 2 cards from your hand.",
+//     text: "+1 Credit\nTrash up to 2 cards from your hand.",
 //     onPlay: (p) => [
 //       { kind: "addCoins", amount: 1 },
 //       { kind: "trashFromHand", player: p, min: 0, max: 2 },
@@ -63,7 +63,7 @@ import { BLIGHT } from "./basic";
 //     name: "Raider",
 //     cost: 4,
 //     types: ["action", "attack"],
-//     text: "+1 Card\n+1 Coin\nEach other player discards a card.",
+//     text: "+1 Card\n+1 Credit\nEach other player discards a card.",
 //     onPlay: (p) => [
 //       { kind: "draw", player: p, count: 1 },
 //       { kind: "addCoins", amount: 1 },
@@ -75,7 +75,7 @@ import { BLIGHT } from "./basic";
 //     name: "Tax Collector",
 //     cost: 5,
 //     types: ["action"],
-//     text: "+1 Buy\n+3 Coins",
+//     text: "+1 Buy\n+3 Credits",
 //     onPlay: () => [
 //       { kind: "addBuys", amount: 1 },
 //       { kind: "addCoins", amount: 3 },
@@ -106,41 +106,41 @@ import { BLIGHT } from "./basic";
 //     name: "Warlock",
 //     cost: 5,
 //     types: ["action", "attack"],
-//     text: "+1 Card\n+1 Action\nEach other player gains a Blight.",
+//     text: "+1 Card\n+1 Action\nEach other player gains a Malware.",
 //     onPlay: (p) => [
 //       { kind: "draw", player: p, count: 1 },
 //       { kind: "addActions", amount: 1 },
-//       { kind: "attack", attacker: p, effect: { kind: "gain", cardId: BLIGHT } },
+//       { kind: "attack", attacker: p, effect: { kind: "gain", cardId: MALWARE } },
 //     ],
 //   },
 // ];
 
 export const KINGDOM_CARDS: CardDef[] = [
   {
-    id: "cellar",
-    name: "Cellar",
+    id: "overclock",
+    name: "Overclock",
     cost: 2,
     types: ["action"],
-    text: "+2 Actions\n+1 Coin",
+    text: "+2 Actions\n+1 Credit",
     onPlay: () => [
       { kind: "addActions", amount: 2 },
       { kind: "addCoins", amount: 1 },
     ],
   },
   {
-    id: "chapel",
-    name: "Chapel",
+    id: "reclaimer",
+    name: "Reclaimer",
     cost: 2,
     types: ["action"],
-    text: "+1 Coin\nTrash up to 2 cards from your hand.",
+    text: "+1 Credit\nTrash up to 2 cards from your hand.",
     onPlay: (p) => [
       { kind: "addCoins", amount: 1 },
       { kind: "trashFromHand", player: p, min: 0, max: 2 },
     ],
   },
   {
-    id: "moat",
-    name: "Moat",
+    id: "perimeter-shield",
+    name: "Perimeter Shield",
     cost: 3,
     types: ["action", "reaction"],
     text: "+1 Card\n+1 Action\nWhen another player plays an Attack, you may reveal this from your hand to be unaffected by it.",
@@ -150,8 +150,8 @@ export const KINGDOM_CARDS: CardDef[] = [
     ],
   },
   {
-    id: "harbinger",
-    name: "Harbinger",
+    id: "survey-drone",
+    name: "Survey Drone",
     cost: 4,
     types: ["action"],
     text: "+3 Cards\nDiscard a card.",
@@ -161,8 +161,8 @@ export const KINGDOM_CARDS: CardDef[] = [
     ],
   },
   {
-    id: "merchant",
-    name: "Merchant",
+    id: "fabricator",
+    name: "Fabricator",
     cost: 4,
     types: ["action"],
     text: "+1 Action\nGain a card costing up to 4.",
@@ -172,11 +172,11 @@ export const KINGDOM_CARDS: CardDef[] = [
     ],
   },
   {
-    id: "vassal",
-    name: "Vassal",
+    id: "emp-burst",
+    name: "EMP Burst",
     cost: 4,
     types: ["action", "attack"],
-    text: "+1 Card\n+1 Coin\nEach other player discards a card.",
+    text: "+1 Card\n+1 Credit\nEach other player discards a card.",
     onPlay: (p) => [
       { kind: "draw", player: p, count: 1 },
       { kind: "addCoins", amount: 1 },
@@ -184,19 +184,19 @@ export const KINGDOM_CARDS: CardDef[] = [
     ],
   },
   {
-    id: "village",
-    name: "Village",
+    id: "mining-rig",
+    name: "Mining Rig",
     cost: 3,
     types: ["action"],
-    text: "+1 Buy\n+3 Coins",
+    text: "+1 Buy\n+3 Credits",
     onPlay: () => [
       { kind: "addBuys", amount: 1 },
       { kind: "addCoins", amount: 3 },
     ],
   },
   {
-    id: "workshop",
-    name: "Workshop",
+    id: "supply-drop",
+    name: "Supply Drop",
     cost: 3,
     types: ["action"],
     text: "+2 Cards\n+1 Action\n+1 Buy",
@@ -207,23 +207,23 @@ export const KINGDOM_CARDS: CardDef[] = [
     ],
   },
   {
-    id: "militia",
-    name: "Militia",
+    id: "matter-converter",
+    name: "Matter Converter",
     cost: 4,
     types: ["action"],
     text: "Trash a card from your hand. Gain a card costing up to 3 more than it.",
     onPlay: (p) => [{ kind: "trashToGain", player: p, plus: 3 }],
   },
   {
-    id: "moneylender",
-    name: "Moneylender",
+    id: "infiltrator",
+    name: "Infiltrator",
     cost: 4,
     types: ["action", "attack"],
-    text: "+1 Card\n+1 Action\nEach other player gains a Blight.",
+    text: "+1 Card\n+1 Action\nEach other player gains a Malware.",
     onPlay: (p) => [
       { kind: "draw", player: p, count: 1 },
       { kind: "addActions", amount: 1 },
-      { kind: "attack", attacker: p, effect: { kind: "gain", cardId: BLIGHT } },
+      { kind: "attack", attacker: p, effect: { kind: "gain", cardId: MALWARE } },
     ],
   },
 ];

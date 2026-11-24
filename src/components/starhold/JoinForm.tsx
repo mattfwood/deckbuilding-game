@@ -20,24 +20,20 @@ export function JoinForm({ code }: { code: string }) {
         });
       }}
     >
-      <label className="flex flex-col gap-1 text-sm font-medium">
-        Your name
+      <label className="flex flex-col gap-1.5">
+        <span className="hud-label">Your name</span>
         <input
-          className="rounded-md border border-stone-300 bg-transparent px-3 py-2 font-normal dark:border-stone-600"
+          className="field"
           value={name}
           maxLength={24}
           onChange={(e) => setName(e.target.value)}
         />
       </label>
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded-md bg-stone-900 px-4 py-2.5 font-medium text-white hover:bg-stone-700 disabled:opacity-60 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-300"
-      >
+      <button type="submit" disabled={pending} className="btn-primary py-2.5">
         {pending ? "Joining…" : "Join game"}
       </button>
       {error && (
-        <p role="alert" className="text-sm text-rose-700 dark:text-rose-300">
+        <p role="alert" className="text-sm text-rose-300">
           {error}
         </p>
       )}

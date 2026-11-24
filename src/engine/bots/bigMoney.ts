@@ -3,7 +3,17 @@
  * a human a game and to fuzz-test the engine. Decides one Action at a time.
  */
 import { getActor } from "../actor";
-import { BLIGHT, CAPITAL, CROWN, FARM, INGOT, PENNY, TOWN, getCard, hasType } from "../cards";
+import {
+  MALWARE,
+  ARCOLOGY,
+  ALLOY,
+  HABITAT,
+  FUSION_CELL,
+  ORE,
+  BIODOME,
+  getCard,
+  hasType,
+} from "../cards";
 import { allCards } from "../scoring";
 import type { Action, CardId, Decision, GameState } from "../types";
 
@@ -19,7 +29,7 @@ function kingdomPreference(kingdom: CardId[]): CardId[] {
 const MAX_KINGDOM_ACTIONS = 3;
 
 /** Cards the bot is happiest to lose, worst first. */
-const JUNK_ORDER: CardId[] = [BLIGHT, FARM, PENNY, TOWN, CAPITAL, CROWN];
+const JUNK_ORDER: CardId[] = [MALWARE, HABITAT, ORE, BIODOME, ARCOLOGY, ALLOY];
 
 export function chooseBotAction(s: GameState, player: number): Action {
   if (getActor(s) !== player) throw new Error(`Seat ${player} is not the one to act.`);
@@ -53,19 +63,19 @@ function pickActionToPlay(hand: CardId[]): CardId | undefined {
 
 function pickBuy(s: GameState, player: number, coins: number): CardId | undefined {
   const available = (id: CardId) => (s.supply[id] ?? 0) > 0 && getCard(id).cost <= coins;
-  const capitalsLeft = s.supply[CAPITAL];
+  const arcologiesLeft = s.supply[ARCOLOGY];
   const owned = allCards(s.players[player]);
   const kingdomActions = owned.filter((c) => s.kingdom.includes(c)).length;
 
   const wants: CardId[] = [];
-  if (capitalsLeft <= 4) wants.push(CAPITAL, TOWN);
-  wants.push(CAPITAL, INGOT);
-  if (capitalsLeft <= 6) wants.push(TOWN);
+  if (arcologiesLeft <= 4) wants.push(ARCOLOGY, BIODOME);
+  wants.push(ARCOLOGY, FUSION_CELL);
+  if (arcologiesLeft <= 6) wants.push(BIODOME);
   if (kingdomActions < MAX_KINGDOM_ACTIONS) {
     wants.push(...kingdomPreference(s.kingdom));
   }
-  wants.push(CROWN);
-  if (capitalsLeft <= 2) wants.push(FARM);
+  wants.push(ALLOY);
+  if (arcologiesLeft <= 2) wants.push(HABITAT);
   return wants.find(available);
 }
 
@@ -77,10 +87,10 @@ function decide(s: GameState, d: Decision) {
     case "selectFromSupply": {
       const byCost = [...d.options].sort((a, b) => getCard(b).cost - getCard(a).cost);
       const pick =
-        [CAPITAL, INGOT, ...kingdomPreference(s.kingdom), CROWN].find((id) =>
+        [ARCOLOGY, FUSION_CELL, ...kingdomPreference(s.kingdom), ALLOY].find((id) =>
           d.options.includes(id),
         ) ??
-        byCost.find((id) => id !== BLIGHT) ??
+        byCost.find((id) => id !== MALWARE) ??
         byCost[0];
       return { kind: "selectFromSupply" as const, cardId: pick };
     }
@@ -91,7 +101,7 @@ function decide(s: GameState, d: Decision) {
       let count = d.min;
       if (d.purpose === "trash") {
         // Trash only real junk, as many as allowed.
-        const junk = ranked.filter((c) => c === BLIGHT || c === FARM || c === PENNY);
+        const junk = ranked.filter((c) => c === MALWARE || c === HABITAT || c === ORE);
         count = Math.max(d.min, Math.min(d.max, junk.length));
       }
       return { kind: "selectFromHand" as const, cards: ranked.slice(0, count) };
@@ -101,6 +111,6 @@ function decide(s: GameState, d: Decision) {
 
 function junkRank(id: CardId): number {
   const i = JUNK_ORDER.indexOf(id);
-  // Unlisted cards (kingdom actions, Ingot) are kept: rank them after the junk, cheapest first.
+  // Unlisted cards (kingdom actions, Fusion Cell) are kept: rank them after the junk, cheapest first.
   return i === -1 ? JUNK_ORDER.length + getCard(id).cost : i;
 }

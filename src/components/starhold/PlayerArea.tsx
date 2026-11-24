@@ -16,10 +16,8 @@ interface PlayerAreaProps {
   onViewCards: (tab: CardViewerTab) => void;
 }
 
-const button =
-  "rounded-md px-3 py-1.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-40";
-const primary = `${button} bg-stone-900 text-white hover:bg-stone-700 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-300`;
-const secondary = `${button} border border-stone-300 hover:bg-stone-100 dark:border-stone-600 dark:hover:bg-stone-800`;
+const primary = "btn-primary";
+const secondary = "btn-secondary";
 
 /**
  * Your hand, status, and controls. The parent remounts this (via `key`) when a
@@ -81,13 +79,13 @@ export function PlayerArea({
   }
 
   return (
-    <section aria-label="Your area" className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-        <span className="font-semibold">{me.name}</span>
+    <section aria-label="Your area" className="panel flex flex-col gap-3 p-3 sm:p-4">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+        <span className="font-hud text-base font-bold tracking-wide text-cyan-100">{me.name}</span>
         <Stat label="Actions" value={view.actions} active={isCurrent} />
         <Stat label="Buys" value={view.buys} active={isCurrent} />
         <Stat
-          label="Coins"
+          label="Credits"
           value={view.coins}
           active={isCurrent}
           hint={myTurn && handTreasure > 0 ? `+${handTreasure} in hand` : undefined}
@@ -102,7 +100,7 @@ export function PlayerArea({
           ).map(([tab, label]) => (
             <button
               key={tab}
-              className="rounded-md border border-stone-300 px-2 py-0.5 text-xs text-stone-600 hover:bg-stone-100 dark:border-stone-600 dark:text-stone-300 dark:hover:bg-stone-800"
+              className="rounded-sm border border-cyan-300/25 px-2 py-0.5 font-hud text-xs font-semibold tracking-wide text-cyan-100/90 uppercase hover:border-cyan-300/60 hover:bg-slate-800/80"
               onClick={() => onViewCards(tab)}
             >
               {label}
@@ -131,12 +129,12 @@ export function PlayerArea({
             disabled={handTreasure === 0}
             onClick={() => act({ type: "playAllTreasures", player: you })}
           >
-            Play all treasures
+            Play all resources
           </button>
           <button className={primary} onClick={endTurn}>
             End turn
           </button>
-          <span className="self-center text-xs text-stone-500 dark:text-stone-400">
+          <span className="self-center text-xs text-dim">
             {view.phase === "action"
               ? "Play actions from your hand, or buy from the supply."
               : "Buy from the supply, then end your turn."}
@@ -157,7 +155,7 @@ export function PlayerArea({
           );
         })}
         {view.hand.length === 0 && (
-          <p className="self-center text-sm text-stone-500">Your hand is empty.</p>
+          <p className="self-center text-sm text-dim">Your hand is empty.</p>
         )}
       </div>
     </section>
@@ -176,9 +174,10 @@ function Stat({
   hint?: string;
 }) {
   return (
-    <span className={active ? "" : "text-stone-400"}>
-      {label} <strong className="tabular-nums">{active ? value : "–"}</strong>
-      {hint && <span className="ml-1 text-xs text-stone-500">({hint})</span>}
+    <span className={`flex items-baseline gap-1.5 ${active ? "" : "opacity-50"}`}>
+      <span className="hud-label">{label}</span>
+      <strong className="font-mono text-lg text-ink tabular-nums">{active ? value : "–"}</strong>
+      {hint && <span className="text-xs text-dim">({hint})</span>}
     </span>
   );
 }
@@ -199,7 +198,8 @@ function DecisionBar({
   if (!decision) {
     if (!waitingOn) return null;
     return (
-      <p className="rounded-md bg-stone-100 px-3 py-2 text-sm text-stone-600 dark:bg-stone-800 dark:text-stone-300">
+      <p className="flex items-center gap-2 rounded-md border border-cyan-300/15 bg-slate-950/60 px-3 py-2 text-sm text-dim">
+        <span aria-hidden className="size-2 animate-pulse rounded-full bg-signal" />
         Waiting for {waitingOn}…
       </p>
     );
@@ -207,7 +207,7 @@ function DecisionBar({
 
   const you = view.you;
   const shell =
-    "flex flex-wrap items-center gap-3 rounded-md border border-sky-400 bg-sky-50 px-3 py-2 text-sm dark:bg-sky-950/40";
+    "flex flex-wrap items-center gap-3 rounded-md border border-violet-400/60 bg-violet-950/60 px-3 py-2 text-sm text-violet-100 shadow-[0_0_16px_rgb(167_139_250/0.2)]";
 
   switch (decision.kind) {
     case "selectFromHand": {
@@ -215,7 +215,7 @@ function DecisionBar({
       return (
         <div className={shell} role="status">
           <strong>{decision.prompt}</strong>
-          <span className="text-stone-600 dark:text-stone-300">
+          <span className="text-violet-200/80">
             Selected {selected.length}
             {decision.min === decision.max ? ` of ${decision.max}` : ` (up to ${decision.max})`}
           </span>
@@ -239,9 +239,7 @@ function DecisionBar({
       return (
         <div className={shell} role="status">
           <strong>{decision.prompt}</strong>
-          <span className="text-stone-600 dark:text-stone-300">
-            Pick a highlighted card in the supply.
-          </span>
+          <span className="text-violet-200/80">Pick a highlighted card in the supply.</span>
         </div>
       );
     case "revealReaction":

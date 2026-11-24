@@ -8,6 +8,7 @@ import { createGameService } from "./games";
  * Anonymous identity until Phase 4 adds accounts: a random id in an httpOnly
  * cookie. Whoever holds the cookie owns the seats created with it.
  */
+// Named from the game's working title, Realm. Kept so existing players keep their seats.
 const COOKIE = "realm-guest";
 const ONE_YEAR = 60 * 60 * 24 * 365;
 

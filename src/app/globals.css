@@ -1,26 +1,103 @@
 @import "tailwindcss";
 
-:root {
-  --background: #fafaf9;
-  --foreground: #1c1917;
-}
-
+/*
+ * Starhold: a colony control console on a newly settled world, cyberpunk-leaning:
+ * neon cyan + hot magenta, hard edges, scanlines and a grid floor. Always dark.
+ * Cyan is the interface accent (focus, affordability, primary actions); card
+ * types keep their own colors (see Card.tsx), so cyan never means "resource".
+ */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-void: #07040f;
+  --color-hull: #120a1f;
+  --color-neon: #ff2bd6;
+  --color-ink: #e2e8f0;
+  --color-dim: #94a3b8;
+  --color-faint: #64748b;
+  --color-signal: #22d3ee;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-orbitron);
+  --font-hud: var(--font-chakra);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0c0a09;
-    --foreground: #f5f5f4;
-  }
+:root {
+  color-scheme: dark;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  color: var(--color-ink);
   font-family: var(--font-sans), system-ui, sans-serif;
+  background-color: var(--color-void);
+  /* Starfield (five tiled layers of single dots at co-prime sizes), then the
+     glow of the planet's horizon below and a faint nebula above. */
+  background-image:
+    radial-gradient(1px 1px at 37px 51px, rgb(255 255 255 / 0.7), transparent),
+    radial-gradient(1px 1px at 163px 89px, rgb(255 255 255 / 0.5), transparent),
+    radial-gradient(1.5px 1.5px at 91px 173px, rgb(186 230 253 / 0.6), transparent),
+    radial-gradient(1px 1px at 211px 23px, rgb(255 255 255 / 0.35), transparent),
+    radial-gradient(1px 1px at 7px 131px, rgb(253 230 138 / 0.4), transparent),
+    linear-gradient(rgb(255 43 214 / 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(34 211 238 / 0.06) 1px, transparent 1px),
+    radial-gradient(ellipse 140% 55% at 50% 118%, rgb(255 43 214 / 0.22), transparent 62%),
+    radial-gradient(ellipse 60% 35% at 85% -5%, rgb(139 92 246 / 0.2), transparent 70%),
+    radial-gradient(ellipse 50% 30% at 10% 0%, rgb(34 211 238 / 0.12), transparent 70%);
+  background-size:
+    229px 229px,
+    263px 263px,
+    311px 311px,
+    347px 347px,
+    389px 389px,
+    48px 48px,
+    48px 48px,
+    100% 100%,
+    100% 100%,
+    100% 100%;
+  background-attachment: fixed;
+}
+
+/* CRT scanlines over everything; purely decorative, never blocks clicks. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgb(0 0 0 / 0.18) 0,
+    rgb(0 0 0 / 0.18) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  mix-blend-mode: multiply;
+}
+
+::selection {
+  background: rgb(255 43 214 / 0.4);
+}
+
+/* A translucent console panel. */
+@utility panel {
+  @apply rounded-none border border-fuchsia-400/25 bg-hull/75 shadow-[0_0_0_1px_rgb(34_211_238/0.08),0_0_24px_rgb(255_43_214/0.08)] backdrop-blur-sm;
+}
+
+/* Small uppercase interface label. */
+@utility hud-label {
+  @apply font-hud text-xs font-semibold tracking-[0.18em] text-dim uppercase;
+}
+
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-none px-3 py-1.5 font-hud text-sm font-semibold tracking-wide uppercase transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal disabled:cursor-not-allowed disabled:opacity-40;
+}
+
+@utility btn-primary {
+  @apply btn bg-neon text-white shadow-[0_0_18px_rgb(255_43_214/0.55)] hover:bg-fuchsia-400;
+}
+
+@utility btn-secondary {
+  @apply btn border border-cyan-300/40 bg-black/40 text-cyan-100 hover:border-cyan-300 hover:shadow-[0_0_12px_rgb(34_211_238/0.4)];
+}
+
+@utility field {
+  @apply rounded-none border border-cyan-300/30 bg-slate-950/70 px-3 py-2 text-ink placeholder:text-faint focus:border-signal focus:outline-none;
 }
