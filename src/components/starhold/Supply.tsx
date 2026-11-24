@@ -31,8 +31,8 @@ interface SupplyProps {
 }
 
 /**
- * The supply as compact tiles: cost, name and a one-line effect, with the full
- * rules text on hover. Nothing is highlighted by default; what you can't
+ * The supply as compact tiles: cost, name and the card's full rules text (never
+ * cut off). Nothing is highlighted by default; what you can't
  * afford is faded instead, and the accent only appears on hover.
  */
 export function Supply({ view, display, onPick }: SupplyProps) {
@@ -95,7 +95,7 @@ function SupplyTile({
           <CardIcon id={id} />
           <span className="text-sm leading-tight font-semibold text-ink">{card.name}</span>
         </span>
-        <span className="line-clamp-2 text-xs leading-snug text-dim">{summary}</span>
+        <span className="text-xs leading-snug text-dim">{summary}</span>
       </span>
       {showLeft && (
         <span
@@ -118,14 +118,11 @@ function SupplyTile({
       type="button"
       className={className}
       onClick={onPick}
-      title={card.text}
       aria-label={`${card.name}, costs ${card.cost}${showLeft ? `, ${left} left` : ""}`}
     >
       {body}
     </button>
   ) : (
-    <div className={className} title={card.text}>
-      {body}
-    </div>
+    <div className={className}>{body}</div>
   );
 }
